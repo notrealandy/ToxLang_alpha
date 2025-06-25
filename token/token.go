@@ -18,6 +18,24 @@ const (
 	RETURN = "RETURN" // return keyword
 	COMMA  = "COMMA"   // ,
 
+	// Operators
+	PLUS     = "+"
+	MINUS    = "-"
+	ASTERISK = "*"
+	SLASH    = "/"
+
+	LT  = "<"
+	GT  = ">"
+	EQ  = "=="
+	NEQ = "!=" // Using NEQ for "Not Equal" to avoid confusion with BANG
+	LTE = "<=" // Less Than or Equal
+	GTE = ">=" // Greater Than or Equal
+
+	// Logical
+	BANG = "!" // For logical NOT, distinct from NEQ
+	// AND = "&&" // For logical AND
+	// OR  = "||" // For logical OR
+
 	ILLEGAL = "ILLEGAL"
 	EOF     = "EOF"
 )

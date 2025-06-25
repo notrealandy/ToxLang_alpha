@@ -1,0 +1,81 @@
+// --- Valid Expressions (should parse and typecheck without errors) ---
+
+// Literals (already implicitly tested by let/return)
+let i int >> 123
+let s string >> "hello"
+let b bool >> true
+
+// Prefix Expressions
+let negInt int >> -5
+let notBool bool >> !true
+
+// Arithmetic Infix Expressions
+let sumResult int >> 1 + 2
+let diffResult int >> 10 - 3
+let prodResult int >> 4 * 5
+let quotResult int >> 20 / 4
+
+// Operator Precedence
+let prec1 int >> 1 + 2 * 3 // Should be 1 + (2*3) = 7
+let prec2 int >> (1 + 2) * 3 // Should be (1+2) * 3 = 9
+let prec3 int >> -5 + 2 // Should be (-5) + 2 = -3
+let prec4 int >> -(5 + 2) // Should be -(7) = -7
+
+// Comparison Infix Expressions
+let eqInt bool >> 1 == 1
+let neqInt bool >> 1 != 2
+let ltInt bool >> 1 < 2
+let gtInt bool >> 2 > 1
+let lteInt bool >> 1 <= 1
+let gteInt bool >> 2 >= 1
+
+let eqStr bool >> "a" == "a"
+let neqStr bool >> "a" != "b"
+// let ltStr bool >> "a" < "b" // String comparison for ordering can be added if desired
+
+let eqBool bool >> true == true
+let neqBool bool >> true != false
+
+// Grouped Expressions (shown in precedence tests)
+let groupedArith int >> (10 + 20) / (2 * 3) // (30) / (6) = 5
+
+// --- Expected Type Errors ---
+
+// Prefix op type mismatch
+// let negStr int >> -"abc" // Error: unary - on string
+// let notInt bool >> !123    // Error: unary ! on int
+
+// Infix arithmetic op type mismatch
+// let sumStr int >> 1 + "a" // Error: int + string
+// let sumBool int >> 1 + true // Error: int + bool
+
+// Infix comparison op type mismatch (different types)
+// let eqMixBool bool >> 1 == "1" // Error: int == string
+// let ltMixBool bool >> 1 < "true" // Error: int < string
+
+// Infix comparison op type mismatch (same type, but op not supported)
+// let ltBoolOrder bool >> true < false // Error: < on bool (if we disallow)
+
+
+// --- Tests involving Identifiers (will produce 'unknown_identifier' errors for now) ---
+// These will help verify that the typechecker reports issues with unknown idents.
+// let xUnknown int >> y + 1 // Error: y is unknown
+// let zUnknown bool >> xUnknown == 10 // xUnknown's type is unknown
+
+// Note: Some error tests are commented out. The goal is to test the core mechanics.
+// More exhaustive error reporting will improve as the type system and symbol table mature.
+
+// A simple function using expressions
+fnc calculate(a int, b int) >> int {
+	let result int >> (a + b) * 2 - (b / 1) // Division by 1 to keep it simple
+	return result
+}
+
+// Example that should pass if identifiers were resolved (but will show 'unknown_identifier' errors now)
+// fnc testMath(input int) >> int {
+//   let temp int >> input * 2
+//   let another int >> temp + 5
+//   return another
+// }
+
+let finalVal int >> 100 + 200 // Basic test at end of file

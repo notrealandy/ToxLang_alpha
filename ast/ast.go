@@ -70,3 +70,36 @@ type Identifier struct {
 }
 
 func (i *Identifier) expressionNode() {}
+
+// PrefixExpression (e.g., -5, !true)
+type PrefixExpression struct {
+	Operator string // e.g., "-", "!"
+	Right    Expression
+	Line     int
+	Col      int
+}
+
+func (pe *PrefixExpression) expressionNode() {}
+
+// InfixExpression (e.g., 5 + 5, x == y)
+type InfixExpression struct {
+	Left     Expression
+	Operator string // e.g., "+", "==", "<"
+	Right    Expression
+	Line     int // Line/Col typically of the operator token
+	Col      int
+}
+
+func (ie *InfixExpression) expressionNode() {}
+
+// GroupedExpression (e.g., (5 + 5))
+// This helps in parsing to override precedence, and might be useful for AST clarity
+// or can sometimes be optimized away by the parser directly building the correct precedence tree.
+// For a Pratt parser, this is often explicitly parsed.
+type GroupedExpression struct {
+	Expression Expression
+	Line       int // Line/Col of the opening parenthesis
+	Col        int
+}
+
+func (ge *GroupedExpression) expressionNode() {}

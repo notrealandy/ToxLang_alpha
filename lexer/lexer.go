@@ -88,10 +88,14 @@ func (l *Lexer) readNumber() string {
 // 3. string
 func (l *Lexer) readIdentifier() string {
 	pos := l.position
-	for isLetter(l.ch) {
+	// First character must be a letter or underscore
+	if isLetter(l.ch) {
 		l.readChar()
+		// Subsequent characters can be letters or digits
+		for isLetter(l.ch) || isDigit(l.ch) {
+			l.readChar()
+		}
 	}
-
 	return l.input[pos:l.position]
 }
 
@@ -142,13 +146,55 @@ func (l *Lexer) NextToken() token.Token {
 	startCol := l.col
 
 	switch l.ch {
+	case '+':
+		tok = token.Token{Type: token.PLUS, Literal: string(l.ch), Line: l.line, Col: startCol}
+	case '-':
+		tok = token.Token{Type: token.MINUS, Literal: string(l.ch), Line: l.line, Col: startCol}
+	case '*':
+		tok = token.Token{Type: token.ASTERISK, Literal: string(l.ch), Line: l.line, Col: startCol}
+	case '/':
+		// The comment handling loop at the beginning of NextToken() ensures that
+		// if we reach here with l.ch == '/', it's for division, not a comment.
+		tok = token.Token{Type: token.SLASH, Literal: string(l.ch), Line: l.line, Col: startCol}
+	case '<':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.LTE, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.LT, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
 	case '>':
-		if l.peekChar() == '>' {
+		if l.peekChar() == '>' { // This is ASSIGN_OP (>>)
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.ASSIGN_OP, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
+		} else if l.peekChar() == '=' { // This is GTE (>=)
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.GTE, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
+		} else { // This is GT (>)
+			tok = token.Token{Type: token.GT, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
+	case '=':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
 		} else {
+			// Single '=' is not used yet, could be an assignment operator later, or illegal for now.
+			// For now, let's make it ILLEGAL if it's not '==' or part of '>>' (which is ASSIGN_OP).
+			// However, the original ASSIGN_OP is '>>'. If we want '=' for assignment, that's a separate change.
+			// Given current tokens, a single '=' is ILLEGAL.
 			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
+	case '!':
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.NEQ, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.BANG, Literal: string(l.ch), Line: l.line, Col: startCol}
 		}
 	case '"':
 		tok.Type = token.STRING

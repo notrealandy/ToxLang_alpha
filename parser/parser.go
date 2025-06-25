@@ -14,22 +14,192 @@ type Parser struct {
 	curToken  token.Token
 	peekToken token.Token
 	Errors    []string
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
+}
+
+// Pratt parser function types
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
+)
+
+// Precedence constants
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // == or !=
+	LESSGREATER // > or < or <= or >=
+	SUM         // + or -
+	PRODUCT     // * or /
+	PREFIX      // -X or !X
+	CALL        // myFunction(X) (Future)
+	INDEX       // array[index] (Future)
+)
+
+// Precedence map for token types
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NEQ:      EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.LTE:      LESSGREATER,
+	token.GTE:      LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+	// token.LPAREN: CALL, // For function calls
+	// token.LBRACKET: INDEX, // For array indexing
 }
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l:      l,
-		Errors: []string{},
+		l:              l,
+		Errors:         []string{},
+		prefixParseFns: make(map[token.TokenType]prefixParseFn),
+		infixParseFns:  make(map[token.TokenType]infixParseFn),
 	}
+
+	// Register prefix parsing functions
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.BOOL, p.parseBooleanLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+
+	// Register infix parsing functions for binary operators
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NEQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LTE, p.parseInfixExpression)
+	p.registerInfix(token.GTE, p.parseInfixExpression)
+
+	// Initialize curToken and peekToken
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+func (p *Parser) peekPrecedence() int {
+	if pr, ok := precedences[p.peekToken.Type]; ok {
+		return pr
+	}
+	return LOWEST
+}
+
+func (p *Parser) curPrecedence() int {
+	if pr, ok := precedences[p.curToken.Type]; ok {
+		return pr
+	}
+	return LOWEST
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		p.Errors = append(p.Errors, fmt.Sprintf("no prefix parse function for %s found on line %d:%d", p.curToken.Type, p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	leftExp := prefix()
+
+	for precedence < p.peekPrecedence() { // No semicolon at the end of the condition for `for`
+		infix := p.infixParseFns[p.peekToken.Type]
+		if infix == nil {
+			return leftExp
+		}
+		p.nextToken() // Consume the infix operator or the token that starts the next part of expression
+		leftExp = infix(leftExp)
+	}
+	return leftExp
 }
 
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
+
+// Prefix parsing functions
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{}
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		p.Errors = append(p.Errors, fmt.Sprintf("could not parse %q as integer on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Value: p.curToken.Literal} // Assuming lexer handles unquoting
+}
+
+func (p *Parser) parseBooleanLiteral() ast.Expression {
+	val := p.curToken.Literal == "true" // Lexer ensures it's "true" or "false" if token.BOOL
+	return &ast.BoolLiteral{Value: val}
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Operator: p.curToken.Literal,
+		Line:     p.curToken.Line,
+		Col:      p.curToken.Col,
+	}
+	p.nextToken() // Consume the prefix operator (e.g., "-" or "!")
+	expression.Right = p.parseExpression(PREFIX)
+	return expression
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	line := p.curToken.Line
+	col := p.curToken.Col
+	p.nextToken() // Consume '('
+
+	exp := p.parseExpression(LOWEST)
+
+	if p.peekToken.Type != token.RPAREN {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected ')' to close grouped expression on line %d:%d, got %s instead of RPAREN", p.peekToken.Line, p.peekToken.Col, p.peekToken.Type))
+		return nil
+	}
+	p.nextToken() // Consume ')'
+
+	return &ast.GroupedExpression{Expression: exp, Line: line, Col: col}
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Left:     left,
+		Operator: p.curToken.Literal,
+		Line:     p.curToken.Line,
+		Col:      p.curToken.Col,
+	}
+	precedence := p.curPrecedence()
+	p.nextToken() // Consume the infix operator
+	expression.Right = p.parseExpression(precedence)
+	return expression
+}
+
 
 func (p *Parser) ParseProgram() []ast.Statement {
 	var statements []ast.Statement
@@ -89,27 +259,23 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	p.nextToken() // consume >>
 
-	// TODO: This should parse a full expression, not just literals
-	switch p.curToken.Type {
-	case token.STRING:
-		stmt.Value = &ast.StringLiteral{Value: p.curToken.Literal}
-	case token.INT:
-		intVal, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-		if err != nil {
-			p.Errors = append(p.Errors, fmt.Sprintf("could not parse int '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
-			return nil
-		}
-		stmt.Value = &ast.IntegerLiteral{Value: intVal}
-	case token.BOOL:
-		boolVal := p.curToken.Literal == "true"
-		stmt.Value = &ast.BoolLiteral{Value: boolVal}
-	case token.IDENT:
-		stmt.Value = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
-	default:
-		p.Errors = append(p.Errors, fmt.Sprintf("unexpected value type '%s' for 'let %s' on line %d:%d", p.curToken.Literal, stmt.Name, p.curToken.Line, p.curToken.Col))
+	// Parse the expression for the value
+	stmt.Value = p.parseExpression(LOWEST)
+	if stmt.Value == nil { // Check if parseExpression returned an error indicator
+		// Error already recorded by parseExpression or its children
 		return nil
 	}
-	// No p.nextToken() here, because ParseProgram loop will call it.
+
+	// The p.nextToken() that used to be here to consume the literal is now implicitly
+	// handled by the parseExpression consuming all its necessary tokens.
+	// The main ParseProgram loop (or block statement loop) will call p.nextToken()
+	// after this statement is fully parsed.
+
+	// If the expression parsing expects a semicolon or newline to terminate,
+	// that would be handled after the call to p.parseExpression here.
+	// For now, we assume expressions are consumed correctly and the next token is
+	// either EOF or the start of a new statement.
+
 	return stmt
 }
 
@@ -160,28 +326,14 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	// curToken is RETURN
 	p.nextToken() // consume RETURN
 
-	// TODO: This should parse a full expression, not just literals
-	switch p.curToken.Type {
-	case token.STRING:
-		stmt.ReturnValue = &ast.StringLiteral{Value: p.curToken.Literal}
-	case token.INT:
-		intVal, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-		if err != nil {
-			p.Errors = append(p.Errors, fmt.Sprintf("could not parse int '%s' for return value on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
-			return nil
-		}
-		stmt.ReturnValue = &ast.IntegerLiteral{Value: intVal}
-	case token.BOOL:
-		boolVal := p.curToken.Literal == "true"
-		stmt.ReturnValue = &ast.BoolLiteral{Value: boolVal}
-	case token.IDENT:
-		stmt.ReturnValue = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
-	// TODO: Add function calls, etc.
-	default:
-		p.Errors = append(p.Errors, fmt.Sprintf("unexpected value type '%s' for return value on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+	if stmt.ReturnValue == nil { // Check if parseExpression returned an error indicator
+		// Error already recorded by parseExpression or its children
 		return nil
 	}
-	// No p.nextToken() here, because the block parsing loop will call it.
+
+	// Similar to LetStatement, parseExpression consumes its tokens.
+	// The loop in parseBlockStatement will call p.nextToken() after this.
 	return stmt
 }
 
