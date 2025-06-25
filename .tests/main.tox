@@ -1,0 +1,7 @@
+let x string >> "tox"
+let y int >> 3
+let z bool >> true
+
+fnc main () >> {
+    let l string >> "test1"
+}
