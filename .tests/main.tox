@@ -5,3 +5,88 @@ let z bool >> true
 fnc main () >> {
     let l string >> "test1"
 }
+
+// Test basic function declaration, parameters, return type, and return statement
+
+// Valid: Function with no params, no explicit return type (implicitly void)
+fnc simple() >> {
+    let x int >> 10
+}
+
+// Valid: Function with params, no explicit return type
+fnc withParams(a int, b string) >> {
+    let y bool >> true
+}
+
+// Valid: Function with no params, with return type
+fnc returnsString() >> string {
+    return "hello"
+}
+
+// Valid: Function with params and return type
+fnc add(a int, b int) >> int {
+    // For now, we can't actually add, so just return one of them or a literal
+    // This tests the signature and return statement, not expression evaluation yet
+    return 123 // Or return a; once identifier evaluation is in typechecker/parser
+}
+
+// Valid: Function with multiple let statements and a return
+fnc complexBody(name string) >> string {
+    let greeting string >> "Hello, "
+    // let combined string >> greeting + name // needs expression parsing
+    let combined string >> "placeholder" // Placeholder for now
+    return combined // needs identifier support in return & typechecker
+}
+
+// --- Type Errors to be caught by typechecker ---
+
+// Error: Return type mismatch
+fnc wrongReturn() >> string {
+    return 123 // Expected string, got int
+}
+
+// Error: Returning in a function with no declared return type (assuming void functions cannot return values)
+// Depending on strictness, this might be an error or just a warning if the language defines `>> {}` as `>> void {}`
+// For now, let's assume it's an error if a return type isn't specified but a value is returned.
+// Or, more precisely, if ReturnType is "" (empty string), a return statement with a value is a mismatch.
+fnc returnInVoid(val int) >> { // No return type specified
+    return val // This should be an error
+}
+
+
+// --- Parse Errors to be caught by parser ---
+
+// Error: Missing comma in parameters
+// fnc badParams1(a int b int) >> {}
+
+// Error: Missing parameter type
+// fnc badParams2(a int, b) >> {}
+
+// Error: Missing parameter name
+// fnc badParams3(a int, string) >> {}
+
+// Error: Unexpected token instead of parameter name
+// fnc badParams4(a int, 123 string) >> {}
+
+// Error: Missing '>>' before body
+// fnc noArrow(a int) {}
+
+// Error: Missing '{' for body
+// fnc noLBrace(a int) >>
+
+// Error: Missing '}' for body
+// fnc noRBrace(a int) >> {
+
+// Error: Return statement outside function (already handled in parser)
+// return "oops"
+
+// Note: Some parse error tests are commented out above.
+// The current parser might stop at the first error or not give super detailed errors for all these cases yet.
+// The primary goal here is to test the happy paths for the new syntax and basic type errors for returns.
+// More robust parsing error recovery and reporting would be a separate improvement.
+
+// Example from user:
+fnc main () >> string {
+  let x string >> "Hello Tox"
+  return "Hello Tox" // Returning literal string for now, as 'x' isn't in symbol table
+}

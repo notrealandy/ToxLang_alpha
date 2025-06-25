@@ -15,8 +15,11 @@ const (
 	STRING = "STRING" // string literal, e.g. "test"
 	INT = "INT" // int literal, e.g. 3
 	BOOL = "BOOL" // bool literal, e.g. true/false
+	RETURN = "RETURN" // return keyword
+	COMMA  = "COMMA"   // ,
+
 	ILLEGAL = "ILLEGAL"
-	EOF = "EOF"
+	EOF     = "EOF"
 )
 
 type Token struct {

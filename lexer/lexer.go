@@ -116,6 +116,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.TYPE
 	case "true", "false":
 		return token.BOOL
+	case "return":
+		return token.RETURN
 	default:
 		return token.IDENT
 	}
@@ -123,7 +125,18 @@ func lookupIdent(ident string) token.TokenType {
 
 // Tokenizer
 func (l *Lexer) NextToken() token.Token {
-	l.skipWhitespace()
+	for {
+		l.skipWhitespace()
+		if l.ch == '/' && l.peekChar() == '/' {
+			for l.ch != '\n' && l.ch != 0 {
+				l.readChar()
+			}
+			// After consuming the comment line, loop again to skip any leading whitespace
+			// of the next actual token, or to handle another comment.
+			continue
+		}
+		break // Not a comment, not whitespace, proceed to tokenizing
+	}
 
 	var tok token.Token
 	startCol := l.col
@@ -151,6 +164,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.LBRACE, Literal: "{", Line: l.line, Col: startCol}
 	case '}':
 		tok = token.Token{Type: token.RBRACE, Literal: "}", Line: l.line, Col: startCol}
+	case ',':
+		tok = token.Token{Type: token.COMMA, Literal: ",", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""
