@@ -21,6 +21,7 @@ const (
 	MINUS = "-"
 	ASTERISK = "*"
 	SLASH = "/"
+	MODULUS = "%"
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )

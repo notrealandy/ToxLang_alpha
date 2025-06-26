@@ -161,6 +161,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.ASTERISK, Literal: "*", Line: l.line, Col: startCol}
 	case '/':
 		tok = token.Token{Type: token.SLASH, Literal: "/", Line: l.line, Col: startCol}
+	case '%':
+		tok = token.Token{Type: token.MODULUS, Literal: "%", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""

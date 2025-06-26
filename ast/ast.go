@@ -23,7 +23,7 @@ type FunctionStatement struct {
 type LogFunction struct {
 	Line int
 	Col int
-	Value *Identifier
+	Value Expression
 }
 
 type Identifier struct {

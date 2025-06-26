@@ -1,4 +1,7 @@
+
+
 fnc main () >> void {
-    let x string >> "Hello Tox!"
-    log(x)
+    let x int >> (2 * (4 + 1)) * 2
+    let y int >> x + 3
+    log(x * y)
 }

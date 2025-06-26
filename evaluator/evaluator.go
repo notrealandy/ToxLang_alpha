@@ -18,8 +18,8 @@ func NewEnvironment() *Environment {
 }
 
 func (env *Environment) GetFunction(name string) (*ast.FunctionStatement, bool) {
-    fn, ok := env.store[name].(*ast.FunctionStatement)
-    return fn, ok
+	fn, ok := env.store[name].(*ast.FunctionStatement)
+	return fn, ok
 }
 
 // Eval evaluates a program (list of statements)
@@ -35,6 +35,28 @@ func Eval(stmts []ast.Statement, env *Environment) {
 				env.store[stmt.Name] = v.Value
 			case *ast.BoolLiteral:
 				env.store[stmt.Name] = v.Value
+			case *ast.BinaryExpression:
+				// Evaluate left and right
+				left := evalExpr(v.Left, env)
+				right := evalExpr(v.Right, env)
+				var result int64
+				l, lok := left.(int64)
+				r, rok := right.(int64)
+				if lok && rok {
+					switch v.Operator {
+					case "+":
+						result = l + r
+					case "-":
+						result = l - r
+					case "*":
+						result = l * r
+					case "/":
+						result = l / r
+					case "%":
+						result = l % r
+					}
+				}
+				env.store[stmt.Name] = result
 			}
 
 		case *ast.FunctionStatement:
@@ -42,17 +64,43 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			env.store[stmt.Name] = stmt
 
 		case *ast.LogFunction:
-			// Print the value (look up if identifier)
-			if stmt.Value.Type == "IDENT" {
-				val, ok := env.store[stmt.Value.Value]
-				if ok {
-					fmt.Println(val)
-				} else {
-					fmt.Printf("undefined variable: %s\n", stmt.Value.Value)
-				}
-			} else {
-				fmt.Println(stmt.Value.Value)
-			}
+			val := evalExpr(stmt.Value, env)
+			fmt.Println(val)
 		}
 	}
+}
+
+
+func evalExpr(expr ast.Expression, env *Environment) interface{} {
+    switch v := expr.(type) {
+    case *ast.StringLiteral:
+        return v.Value
+    case *ast.IntegerLiteral:
+        return v.Value
+    case *ast.BoolLiteral:
+        return v.Value
+    case *ast.Identifier:
+        val, _ := env.store[v.Value]
+        return val
+    case *ast.BinaryExpression:
+        left := evalExpr(v.Left, env)
+        right := evalExpr(v.Right, env)
+        l, lok := left.(int64)
+        r, rok := right.(int64)
+        if lok && rok {
+            switch v.Operator {
+            case "+":
+                return l + r
+            case "-":
+                return l - r
+			case "*":
+				return l * r
+			case "/":
+				return l / r
+			case "%":
+				return l % r
+            }
+        }
+    }
+    return nil
 }

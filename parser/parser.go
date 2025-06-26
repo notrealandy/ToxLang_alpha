@@ -35,6 +35,10 @@ func (p *Parser) ParseProgram() []ast.Statement {
 	var statements []ast.Statement
 
 	for p.curToken.Type != token.EOF {
+		if p.curToken.Type == token.RBRACE {
+			p.nextToken()
+			continue
+		}
 		var stmt ast.Statement
 		if p.curToken.Type == token.LET {
 			stmt = p.parseLetStatement()
@@ -43,7 +47,7 @@ func (p *Parser) ParseProgram() []ast.Statement {
 		} else if p.curToken.Type == token.LOG {
 			stmt = p.parseLogFunctionStatement()
 		} else {
-			p.Errors = append(p.Errors, fmt.Sprintf("unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
 			continue
 		}
@@ -52,61 +56,47 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			statements = append(statements, stmt)
 		}
 
-		p.nextToken()
 	}
 
 	return statements
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
-    if p.curToken.Type != token.LET {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected 'let' on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    p.nextToken()
+	if p.curToken.Type != token.LET {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected 'let' on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken()
 
-    if p.curToken.Type != token.IDENT {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected identifier on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    name := p.curToken.Literal
-    p.nextToken()
+	if p.curToken.Type != token.IDENT {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected identifier on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	name := p.curToken.Literal
+	p.nextToken()
 
-    if p.curToken.Type != token.TYPE {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected type on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    typ := p.curToken.Literal
-    p.nextToken()
+	if p.curToken.Type != token.TYPE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected type on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	typ := p.curToken.Literal
+	p.nextToken()
 
-    if p.curToken.Type != token.ASSIGN_OP {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected assignment operator '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    p.nextToken()
+	if p.curToken.Type != token.ASSIGN_OP {
+		p.Errors = append(p.Errors, fmt.Sprintf("[PARSE LET STATEMENT] expected assignment operator '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken()
 
-    var value ast.Expression
-    switch p.curToken.Type {
-    case token.STRING:
-        value = &ast.StringLiteral{Value: p.curToken.Literal}
-    case token.INT:
-        intVal, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
-        value = &ast.IntegerLiteral{Value: intVal}
-    case token.BOOL:
-        boolVal := p.curToken.Literal == "true"
-        value = &ast.BoolLiteral{Value: boolVal}
-    default:
-        p.Errors = append(p.Errors, fmt.Sprintf("unexpected literal type on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
+	value := p.parseExpression()
 
-    return &ast.LetStatement{
-        Name:  name,
-        Type:  typ,
-        Value: value,
-        Line:  p.curToken.Line,
-        Col:   p.curToken.Col,
-    }
+	return &ast.LetStatement{
+		Name:  name,
+		Type:  typ,
+		Value: value,
+		Line:  p.curToken.Line,
+		Col:   p.curToken.Col,
+	}
 }
 
 func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
@@ -155,12 +145,12 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 
 	// Parse body
 	fn.Body = []ast.Statement{}
+	p.nextToken()
 	for {
-		p.nextToken()
 		if p.curToken.Type == token.RBRACE || p.curToken.Type == token.EOF {
 			break
 		}
-		
+
 		// Use the main statement parsing logic
 		var stmt ast.Statement
 		if p.curToken.Type == token.LET {
@@ -170,7 +160,8 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 		} else if p.curToken.Type == token.FNC {
 			stmt = p.parseFunctionStatement()
 		} else {
-			p.Errors = append(p.Errors, fmt.Sprintf("unexpected token '%s' in function body on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE FNC STATEMENT] unexpected token '%s' in function body on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+			p.nextToken()
 			continue
 		}
 
@@ -183,7 +174,7 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 }
 
 func (p *Parser) parseLogFunctionStatement() *ast.LogFunction {
-	lg := &ast.LogFunction{ Line: p.curToken.Line, Col: p.curToken.Col }
+	lg := &ast.LogFunction{Line: p.curToken.Line, Col: p.curToken.Col}
 
 	p.nextToken() // move to (
 	if p.curToken.Type != token.LPAREN {
@@ -191,30 +182,102 @@ func (p *Parser) parseLogFunctionStatement() *ast.LogFunction {
 		return nil
 	}
 
-	p.nextToken()
-	switch p.curToken.Type {
-	case token.STRING, token.INT, token.BOOL, token.IDENT:
-		lg.Value = &ast.Identifier{
-			Value: p.curToken.Literal,
-			Type:  p.curToken.Type,
-			Line:  p.curToken.Line,
-			Col:   p.curToken.Col,
-		}
-	default:
-		p.Errors = append(p.Errors, fmt.Sprintf("invalid log argument on line %d:%d", p.curToken.Line, p.curToken.Col))
-		return nil
-	}
+	p.nextToken() // move to the start of the expression
+	lg.Value = p.parseExpression()
 
-	p.nextToken() // move past the argument
-
-		if p.curToken.Type != token.RPAREN {
+	if p.curToken.Type != token.RPAREN {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected ')' after log argument on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
 	}
 
+	p.nextToken() // move past ')'
+
 	return lg
 }
 
-// func (p *Parser) parseExpression() ast.Expression {
-// 	left := 
-// }
+func (p *Parser) parseExpression() ast.Expression {
+	return p.parseAdditive()
+}
+
+// parseAdditive parses left-associative chains of + and -
+func (p *Parser) parseAdditive() ast.Expression {
+	left := p.parseMultiplicitave()
+	for p.curToken.Type == token.PLUS || p.curToken.Type == token.MINUS {
+		op := p.curToken.Type
+		line, col := p.curToken.Line, p.curToken.Col
+		p.nextToken()
+		right := p.parseMultiplicitave()
+		left = &ast.BinaryExpression{
+			Left:     left,
+			Operator: op,
+			Right:    right,
+			Line:     line,
+			Col:      col,
+		}
+	}
+	return left
+}
+
+func (p *Parser) parseMultiplicitave() ast.Expression {
+	left := p.parsePrimary()
+	for p.curToken.Type == token.SLASH || p.curToken.Type == token.ASTERISK || p.curToken.Type == token.MODULUS {
+		op := p.curToken.Type
+		line, col := p.curToken.Line, p.curToken.Col
+		p.nextToken()
+		right := p.parsePrimary()
+		left = &ast.BinaryExpression{
+			Left:     left,
+			Operator: op,
+			Right:    right,
+			Line:     line,
+			Col:      col,
+		}
+	}
+	return left
+}
+
+// parsePrimary parses literals and identifiers
+func (p *Parser) parsePrimary() ast.Expression {
+    switch p.curToken.Type {
+    case token.STRING:
+        lit := &ast.StringLiteral{Value: p.curToken.Literal}
+        p.nextToken()
+        return lit
+    case token.INT:
+        intVal, err := strconv.ParseInt(p.curToken.Literal, 10, 64)
+        if err != nil {
+            p.Errors = append(p.Errors, fmt.Sprintf("invalid int literal '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+            p.nextToken()
+            return nil
+        }
+        lit := &ast.IntegerLiteral{Value: intVal}
+        p.nextToken()
+        return lit
+    case token.BOOL:
+        boolVal := p.curToken.Literal == "true"
+        lit := &ast.BoolLiteral{Value: boolVal}
+        p.nextToken()
+        return lit
+    case token.IDENT:
+        ident := &ast.Identifier{
+            Value: p.curToken.Literal,
+            Type:  p.curToken.Type,
+            Line:  p.curToken.Line,
+            Col:   p.curToken.Col,
+        }
+        p.nextToken()
+        return ident
+    case token.LPAREN:
+        p.nextToken()
+        expr := p.parseExpression()
+        if p.curToken.Type != token.RPAREN {
+            p.Errors = append(p.Errors, fmt.Sprintf("expected ')' after expression on line %d:%d", p.curToken.Line, p.curToken.Col))
+            return nil
+        }
+        p.nextToken()
+        return expr
+    default:
+        p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PRIMARY] unexpected token '%s' in expression on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+        return nil
+    }
+}
