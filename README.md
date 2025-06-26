@@ -6,20 +6,25 @@ A toy programming language with basic features.
 
 ### Variable Declaration
 
+```tox
 let x int >> 5  
 let y string >> "hello"  
 let z bool >> true
+```
 
 ### Arithmetic Expressions
 
+```tox
 let sum int >> 1 + 2 * 3  
 let diff int >> 10 - 4  
 let prod int >> 2 * 3  
 let quot int >> 8 / 2  
 let mod int >> 7 % 3
+```
 
 ### Functions
 
+```tox
 fnc main () >> void {  
     let x int >> 2  
     test()  
@@ -31,6 +36,7 @@ fnc test () >> void {
     log(a)  
     return nil  
 }
+```
 
 - Functions are declared with: fnc name () >> return_type { ... }
 - Only void and no-parameter functions are supported for now.
@@ -43,13 +49,17 @@ fnc test () >> void {
 
 ### Logging
 
+```tox
 log(x)  
 log("Hello, world!")
+```
 
 ### Return Statements
 
+```tox
 return 42  
 return nil  // for void functions
+```
 
 ### Types
 
@@ -69,6 +79,7 @@ return nil  // for void functions
 
 ## Example
 
+```tox
 fnc main () >> void {  
     let x int >> 2  
     test()  
@@ -80,6 +91,7 @@ fnc test () >> void {
     log(a)  
     return nil  
 }
+```
 
 ---
 
