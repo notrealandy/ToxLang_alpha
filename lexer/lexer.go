@@ -112,7 +112,9 @@ func lookupIdent(ident string) token.TokenType {
 		return token.LET
 	case "fnc":
 		return token.FNC
-	case "string", "int", "bool":
+	case "log":
+		return token.LOG
+	case "string", "int", "bool", "void":
 		return token.TYPE
 	case "true", "false":
 		return token.BOOL
@@ -151,6 +153,14 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.LBRACE, Literal: "{", Line: l.line, Col: startCol}
 	case '}':
 		tok = token.Token{Type: token.RBRACE, Literal: "}", Line: l.line, Col: startCol}
+	case '+':
+		tok = token.Token{Type: token.PLUS, Literal: "+", Line: l.line, Col: startCol}
+	case '-':
+		tok = token.Token{Type: token.MINUS, Literal: "-", Line: l.line, Col: startCol}
+	case '*':
+		tok = token.Token{Type: token.ASTERISK, Literal: "*", Line: l.line, Col: startCol}
+	case '/':
+		tok = token.Token{Type: token.SLASH, Literal: "/", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""

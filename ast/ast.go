@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/notrealandy/tox/token"
+
 type Statement interface{}
 
 type LetStatement struct {
@@ -18,8 +20,29 @@ type FunctionStatement struct {
 	Col int
 }
 
+type LogFunction struct {
+	Line int
+	Col int
+	Value *Identifier
+}
+
+type Identifier struct {
+	Value string
+	Type token.TokenType
+	Line int
+	Col int
+}
+
 type Expression interface {
 	expressionNode()
+}
+
+type BinaryExpression struct {
+	Left Expression
+	Operator token.TokenType
+	Right Expression
+	Line int
+	Col int
 }
 
 // Define type check string value
@@ -27,18 +50,21 @@ type StringLiteral struct {
 	Value string
 }
 
-func (sl *StringLiteral) expressionNode() {}
-
 // Define type check int value
 type IntegerLiteral struct {
 	Value int64
 }
-
-func (il *IntegerLiteral) expressionNode() {}
 
 // Define type check bool value
 type BoolLiteral struct {
 	Value bool
 }
 
+
+func (lf *LogFunction) statementNode() {}
+
+func (id *Identifier) expressionNode() {}
+func (il *IntegerLiteral) expressionNode() {}
+func (sl *StringLiteral) expressionNode() {}
 func (bl *BoolLiteral) expressionNode() {}
+func (be *BinaryExpression) expressionNode() {}

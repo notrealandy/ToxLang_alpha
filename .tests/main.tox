@@ -1,7 +1,4 @@
-let x string >> "tox"
-let y int >> 3
-let z bool >> true
-
-fnc main () >> {
-    let l string >> "test1"
+fnc main () >> void {
+    let x string >> "Hello Tox!"
+    log(x)
 }

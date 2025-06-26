@@ -7,6 +7,7 @@ import (
 	"github.com/notrealandy/tox/lexer"
 	"github.com/notrealandy/tox/parser"
 	"github.com/notrealandy/tox/typechecker"
+	"github.com/notrealandy/tox/evaluator"
 )
 
 func main() {
@@ -55,7 +56,12 @@ func main() {
 		}
 		os.Exit(1)
 	}
+	fmt.Println("Program passed type checking ✅\n")
 
-
-	fmt.Println("Program passed type checking ✅")
+	env := evaluator.NewEnvironment()
+	evaluator.Eval(program, env)
+	
+	if mainFn, ok := env.GetFunction("main"); ok {
+		evaluator.Eval(mainFn.Body, env)
+	}
 }
