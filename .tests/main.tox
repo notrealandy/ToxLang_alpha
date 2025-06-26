@@ -1,7 +1,7 @@
 
 
-fnc main () >> void {
+fnc main () >> int {
     let x int >> (2 * (4 + 1)) * 2
     let y int >> x + 3
-    log(x * y)
+    return x
 }

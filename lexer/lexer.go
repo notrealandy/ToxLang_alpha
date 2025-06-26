@@ -118,6 +118,10 @@ func lookupIdent(ident string) token.TokenType {
 		return token.TYPE
 	case "true", "false":
 		return token.BOOL
+	case "return":
+		return token.RETURN
+	case "nil":
+		return token.NIL
 	default:
 		return token.IDENT
 	}

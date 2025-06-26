@@ -46,6 +46,8 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseFunctionStatement()
 		} else if p.curToken.Type == token.LOG {
 			stmt = p.parseLogFunctionStatement()
+		} else if p.curToken.Type == token.RETURN {
+    		stmt = p.parseReturnStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -136,6 +138,7 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected return type after '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
 	}
+	fn.ReturnType = p.curToken.Literal
 
 	p.nextToken() // move to {
 	if p.curToken.Type != token.LBRACE {
@@ -159,6 +162,8 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 			stmt = p.parseLogFunctionStatement()
 		} else if p.curToken.Type == token.FNC {
 			stmt = p.parseFunctionStatement()
+		} else if p.curToken.Type == token.RETURN {
+			stmt = p.parseReturnStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE FNC STATEMENT] unexpected token '%s' in function body on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -276,8 +281,23 @@ func (p *Parser) parsePrimary() ast.Expression {
         }
         p.nextToken()
         return expr
+	case token.NIL:
+		expr := &ast.NilLiteral{}
+		p.nextToken()
+		return expr
     default:
         p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PRIMARY] unexpected token '%s' in expression on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
         return nil
+    }
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+    line, col := p.curToken.Line, p.curToken.Col
+    p.nextToken()
+    value := p.parseExpression()
+    return &ast.ReturnStatement{
+        Value: value,
+        Line:  line,
+        Col:   col,
     }
 }

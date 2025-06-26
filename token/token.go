@@ -6,6 +6,7 @@ const (
 	LET = "LET" // reserved keyword
 	FNC = "FNC" // function keyword
 	LOG = "LOG" // native function keyword
+	RETURN = "RETURN"
 	LPAREN = "LPAREN" // (
 	RPAREN = "RPAREN" // )
 	LBRACE = "LBRACE" // {
@@ -22,6 +23,7 @@ const (
 	ASTERISK = "*"
 	SLASH = "/"
 	MODULUS = "%"
+	NIL = "NIL"
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )
