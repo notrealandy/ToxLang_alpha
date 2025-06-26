@@ -13,12 +13,12 @@ type LetStatement struct {
 }
 
 type FunctionStatement struct {
-	Name   string // function name
-	Params []string
-	Body   []Statement
+	Name       string // function name
+	Params     []string
+	Body       []Statement
 	ReturnType string
-	Line   int
-	Col    int
+	Line       int
+	Col        int
 }
 
 type LogFunction struct {
@@ -38,6 +38,17 @@ type Identifier struct {
 	Type  token.TokenType
 	Line  int
 	Col   int
+}
+
+type CallExpression struct {
+	Function  Expression
+	Arguments []Expression
+}
+
+type ExpressionStatement struct {
+	Expr Expression
+	Line int
+	Col  int
 }
 
 type NilLiteral struct{}
@@ -72,9 +83,11 @@ type BoolLiteral struct {
 func (lf *LogFunction) statementNode()     {}
 func (rs *ReturnStatement) statementNode() {}
 
-func (id *Identifier) expressionNode()       {}
-func (il *IntegerLiteral) expressionNode()   {}
-func (sl *StringLiteral) expressionNode()    {}
-func (bl *BoolLiteral) expressionNode()      {}
-func (be *BinaryExpression) expressionNode() {}
-func (nl *NilLiteral) expressionNode() {}
+func (id *Identifier) expressionNode()         {}
+func (il *IntegerLiteral) expressionNode()     {}
+func (sl *StringLiteral) expressionNode()      {}
+func (bl *BoolLiteral) expressionNode()        {}
+func (be *BinaryExpression) expressionNode()   {}
+func (nl *NilLiteral) expressionNode()         {}
+func (ce *CallExpression) expressionNode()     {}
+func (es *ExpressionStatement) statementNode() {}

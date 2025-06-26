@@ -1,7 +1,13 @@
 
 
-fnc main () >> int {
-    let x int >> (2 * (4 + 1)) * 2
-    let y int >> x + 3
-    return x
+fnc main () >> void {
+    let x int >> 2
+    test()
+    log(x)
+}
+
+fnc test () >> void {
+    let a int >> 11
+    log(a)
+    return nil
 }

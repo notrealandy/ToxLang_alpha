@@ -24,6 +24,7 @@ const (
 	SLASH = "/"
 	MODULUS = "%"
 	NIL = "NIL"
+	COMMA = "COMMA" // ,
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )
