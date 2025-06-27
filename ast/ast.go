@@ -34,13 +34,13 @@ type ReturnStatement struct {
 }
 
 type IfStatement struct {
-    IfCond    Expression      // condition for the if
-    IfBody    []Statement     // body for the if
-    ElifConds []Expression    // conditions for each elif
-    ElifBodies [][]Statement  // bodies for each elif
-    ElseBody  []Statement     // body for else, if present
-	Line  int
-	Col   int
+	IfCond     Expression    // condition for the if
+	IfBody     []Statement   // body for the if
+	ElifConds  []Expression  // conditions for each elif
+	ElifBodies [][]Statement // bodies for each elif
+	ElseBody   []Statement   // body for else, if present
+	Line       int
+	Col        int
 }
 
 type Identifier struct {
@@ -59,6 +59,13 @@ type ExpressionStatement struct {
 	Expr Expression
 	Line int
 	Col  int
+}
+
+type UnaryExpression struct {
+	Operator token.TokenType
+	Right    Expression
+	Line     int
+	Col      int
 }
 
 type NilLiteral struct{}
@@ -102,3 +109,4 @@ func (bl *BoolLiteral) expressionNode()      {}
 func (be *BinaryExpression) expressionNode() {}
 func (nl *NilLiteral) expressionNode()       {}
 func (ce *CallExpression) expressionNode()   {}
+func (ue *UnaryExpression) expressionNode()  {}

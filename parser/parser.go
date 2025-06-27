@@ -415,13 +415,12 @@ func (p *Parser) parseLogical() ast.Expression {
 }
 
 func (p *Parser) parseUnary() ast.Expression {
-    if p.curToken.Type == token.NOT {
+    if p.curToken.Type == token.NOT || p.curToken.Type == token.MINUS {
         op := p.curToken.Type
         line, col := p.curToken.Line, p.curToken.Col
         p.nextToken()
         right := p.parseUnary()
-        return &ast.BinaryExpression{
-            Left:     nil,
+        return &ast.UnaryExpression{
             Operator: op,
             Right:    right,
             Line:     line,

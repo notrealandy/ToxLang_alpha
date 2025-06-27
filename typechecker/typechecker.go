@@ -37,6 +37,15 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string) string {
 			}
 		}
 		return ""
+	case *ast.UnaryExpression:
+		switch v.Operator {
+		case token.MINUS:
+			return "int"
+		case token.NOT:
+			return "bool"
+		default:
+			return ""
+		}
 	default:
 		return ""
 	}

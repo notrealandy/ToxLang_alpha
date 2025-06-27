@@ -154,6 +154,17 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			return evalFunctionBody(fnObj.Body, env)
 		}
 		return nil
+	case *ast.UnaryExpression:
+		right := evalExpr(v.Right, env)
+		switch v.Operator {
+		case token.MINUS:
+			if val, ok := right.(int64); ok {
+				return -val
+			}
+		case token.NOT:
+			return !isTruthy(right)
+		}
+		return nil
 	}
 	return nil
 }
