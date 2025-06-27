@@ -4,6 +4,11 @@ A toy programming language with basic features.
 
 ## Supported Syntax
 
+### Comments
+```tox
+// This is a comment
+```
+
 ### Variable Declaration
 
 ```tox

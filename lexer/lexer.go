@@ -42,12 +42,19 @@ func (l *Lexer) readChar() {
 
 // a function to skip whitespaces and other non-important characters in code
 func (l *Lexer) skipWhitespace() {
-	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
-		if l.ch == '\n' {
-			l.line++
-		}
-		l.readChar()
-	}
+    for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || (l.ch == '/' && l.peekChar() == '/') {
+        if l.ch == '/' && l.peekChar() == '/' {
+            // Skip the comment
+            for l.ch != '\n' && l.ch != 0 {
+                l.readChar()
+            }
+        } else {
+            if l.ch == '\n' {
+                l.line++
+            }
+            l.readChar()
+        }
+    }
 }
 
 // a function that allows you to look which character is next
@@ -234,4 +241,12 @@ func (l *Lexer) NextToken() token.Token {
 	}
 	l.readChar()
 	return tok
+}
+
+func (l *Lexer) skipComment() {
+    if l.ch == '/' && l.peekChar() == '/' {
+        for l.ch != '\n' && l.ch != 0 {
+            l.readChar()
+        }
+    }
 }

@@ -30,4 +30,4 @@
 - [ ] Add more built-in functions (e.g., `len`, `input`, etc.).
 
 ## Comments
-- [ ] Allow comments in source code (e.g., lines starting with `//`).
+- [x] Allow comments in source code (e.g., lines starting with `//`).
