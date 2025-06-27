@@ -7,20 +7,48 @@ import (
 	"github.com/notrealandy/tox/token"
 )
 
-// Environment stores variable values
-// Only string/int/bool for now
-// map variable name to value (interface{})
+// Environment stores variable values and supports lexical scoping
 type Environment struct {
-	store map[string]interface{}
+	store  map[string]interface{}
+	parent *Environment
 }
 
 func NewEnvironment() *Environment {
-	return &Environment{store: make(map[string]interface{})}
+	return &Environment{store: make(map[string]interface{}), parent: nil}
 }
 
-func (env *Environment) GetFunction(name string) (*ast.FunctionStatement, bool) {
-	fn, ok := env.store[name].(*ast.FunctionStatement)
-	return fn, ok
+func NewEnclosedEnvironment(outer *Environment) *Environment {
+	return &Environment{store: make(map[string]interface{}), parent: outer}
+}
+
+func (env *Environment) Get(name string) (interface{}, bool) {
+	val, ok := env.store[name]
+	if !ok && env.parent != nil {
+		return env.parent.Get(name)
+	}
+	return val, ok
+}
+
+func (env *Environment) Set(name string, val interface{}) {
+	env.store[name] = val
+}
+
+func (env *Environment) SetExisting(name string, val interface{}) bool {
+	if _, ok := env.store[name]; ok {
+		env.store[name] = val
+		return true
+	}
+	if env.parent != nil {
+		return env.parent.SetExisting(name, val)
+	}
+	return false
+}
+
+func getGlobalEnv(env *Environment) *Environment {
+    for env.parent != nil {
+        env = env.parent
+    }
+    return env
 }
 
 // Eval evaluates a program (list of statements)
@@ -28,33 +56,15 @@ func Eval(stmts []ast.Statement, env *Environment) {
 	for _, s := range stmts {
 		switch stmt := s.(type) {
 		case *ast.LetStatement:
-			// Evaluate the value and store in env
-			switch v := stmt.Value.(type) {
-			case *ast.CallExpression:
-				result := evalExpr(v, env)
-				env.store[stmt.Name] = result
-			case *ast.StringLiteral:
-				env.store[stmt.Name] = v.Value
-			case *ast.IntegerLiteral:
-				env.store[stmt.Name] = v.Value
-			case *ast.BoolLiteral:
-				env.store[stmt.Name] = v.Value
-			case *ast.BinaryExpression:
-				val := evalExpr(v, env)
-				env.store[stmt.Name] = val
-			}
-
+			val := evalExpr(stmt.Value, env)
+			env.Set(stmt.Name, val)
 		case *ast.FunctionStatement:
-			// Only store the function definition in the environment
-			env.store[stmt.Name] = stmt
-
+			env.Set(stmt.Name, stmt)
 		case *ast.LogFunction:
 			val := evalExpr(stmt.Value, env)
 			fmt.Println(val)
-
 		case *ast.ExpressionStatement:
 			evalExpr(stmt.Expr, env)
-
 		case *ast.IfStatement:
 			handled := false
 			if isTruthy(evalExpr(stmt.IfCond, env)) {
@@ -75,7 +85,10 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			}
 		case *ast.AssignmentStatement:
 			val := evalExpr(stmt.Value, env)
-			env.store[stmt.Name] = val
+			if !env.SetExisting(stmt.Name, val) {
+				// If variable doesn't exist in any scope, create it in the current scope
+				env.Set(stmt.Name, val)
+			}
 		}
 	}
 }
@@ -89,14 +102,13 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.BoolLiteral:
 		return v.Value
 	case *ast.Identifier:
-		val, _ := env.store[v.Value]
+		val, _ := env.Get(v.Value)
 		return val
 	case *ast.BinaryExpression:
 		left := evalExpr(v.Left, env)
 		right := evalExpr(v.Right, env)
 		l, lok := left.(int64)
 		r, rok := right.(int64)
-
 		switch v.Operator {
 		case token.PLUS:
 			if lok && rok {
@@ -148,8 +160,9 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		return nil
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
-			fnObj, ok := env.GetFunction(ident.Value)
-			if !ok {
+			fnObj, ok := env.Get(ident.Value)
+			fnStmt, isFn := fnObj.(*ast.FunctionStatement)
+			if !ok || !isFn {
 				return nil // or error
 			}
 			// Evaluate arguments
@@ -157,19 +170,14 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			for _, argExpr := range v.Arguments {
 				args = append(args, evalExpr(argExpr, env))
 			}
-			// Create a new local environment for the function call
-			localEnv := NewEnvironment()
-			// Optionally: copy global env for outer variables
-			for k, v := range env.store {
-				localEnv.store[k] = v
-			}
+			localEnv := NewEnclosedEnvironment(getGlobalEnv(env))
 			// Bind parameters to arguments
-			for i, param := range fnObj.Params {
+			for i, param := range fnStmt.Params {
 				if i < len(args) {
-					localEnv.store[param] = args[i]
+					localEnv.Set(param, args[i])
 				}
 			}
-			return evalFunctionBody(fnObj.Body, localEnv)
+			return evalFunctionBody(fnStmt.Body, localEnv)
 		}
 		return nil
 	case *ast.UnaryExpression:

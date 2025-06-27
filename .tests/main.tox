@@ -1,32 +1,48 @@
-let x int >> 7
-let y int >> 3 + 2 * (x - 4)
-let msg string >> "Hello, Tox!"
-let flag bool >> x > 5 && y < 10
+// let x int >> 7
+// let y int >> 3 + 2 * (x - 4)
+// let msg string >> "Hello, Tox!"
+// let flag bool >> x > 5 && y < 10
+
+// fnc main () >> void {
+//     log(msg)
+//     if flag {
+//         log("Flag is true!")
+//     } elif x == 7 || y == 7 {
+//         log("One of the values is 7")
+//     } else {
+//         log("No condition met")
+//     }
+//     let result int >> add()
+//     log(result)
+//     modifyX("TOXXXXX")
+//     log(test)
+//     return nil // not needed here, but just to show return
+// }
+
+// fnc add () >> int {
+//     return x + y
+// }
+
+// fnc modifyX (a string) >> void {
+
+//     let test int >> 100
+//     log("start a")
+//     log(a)
+//     log("end a")
+//     log(x)
+//     x >> x + 5
+//     log(x)
+// }
+
+let x int >> 1
 
 fnc main () >> void {
-    log(msg)
-    if flag {
-        log("Flag is true!")
-    } elif x == 7 || y == 7 {
-        log("One of the values is 7")
-    } else {
-        log("No condition met")
-    }
-    let result int >> add()
-    log(result)
-    modifyX("TOXXXXX")
-    return nil
-}
-
-fnc add () >> int {
-    return x + y
-}
-
-fnc modifyX (a string) >> void {
-    log("start a")
-    log(a)
-    log("end a")
+    let x int >> 7
     log(x)
-    x >> x + 5
+    bar()
+}
+
+fnc bar () >> void {
+    x >> 2
     log(x)
 }

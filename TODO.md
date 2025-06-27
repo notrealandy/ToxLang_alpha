@@ -6,13 +6,20 @@
 - [x] Bind arguments to parameters in a new local environment when calling a function.
 
 ## Local Variable Scoping
-- [ ] Implement local scope for variables inside functions (so variables in one function don’t leak into others or global scope).
+- [x] Implement local scope for variables inside functions (so variables in one function don’t leak into others or global scope).
 
 ## Variable Assignment (not just declaration)
 - [x] Support updating the value of an existing variable (e.g., `x >> 10`).
 
 ## If Statements / Conditionals
 - [x] Add support for `if` and `else` blocks for control flow.
+
+## Switch Statements
+- [ ] Add support fot `switch` and `case`
+
+## visibility support acorss files
+- [ ] default visibility of function/variable private
+- [ ] add public function/variable by typing `pub` before it `pub let x int >> 1` or `pub fnc helloTox () >> void {}`
 
 ## Loops
 - [ ] Add support for `while` or `for` loops.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/notrealandy/tox/ast"
 	"github.com/notrealandy/tox/evaluator"
 	"github.com/notrealandy/tox/lexer"
 	"github.com/notrealandy/tox/parser"
@@ -64,7 +65,10 @@ func main() {
 	evaluator.Eval(program, env)
 
 	// Now run main if it exists
-	if mainFn, ok := env.GetFunction("main"); ok {
-		evaluator.Eval(mainFn.Body, env)
+	if mainFn, ok := env.Get("main"); ok {
+		if fnStmt, ok := mainFn.(*ast.FunctionStatement); ok {
+			mainEnv := evaluator.NewEnclosedEnvironment(env)
+			evaluator.Eval(fnStmt.Body, mainEnv)
+		}
 	}
 }
