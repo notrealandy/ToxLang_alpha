@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/notrealandy/tox/evaluator"
 	"github.com/notrealandy/tox/lexer"
 	"github.com/notrealandy/tox/parser"
 	"github.com/notrealandy/tox/typechecker"
-	"github.com/notrealandy/tox/evaluator"
 )
 
 func main() {
@@ -59,8 +59,11 @@ func main() {
 	fmt.Println("Program passed type checking ✅\n")
 
 	env := evaluator.NewEnvironment()
+
+	// Evaluate all top-level statements to populate env
 	evaluator.Eval(program, env)
-	
+
+	// Now run main if it exists
 	if mainFn, ok := env.GetFunction("main"); ok {
 		evaluator.Eval(mainFn.Body, env)
 	}

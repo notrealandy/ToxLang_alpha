@@ -40,27 +40,8 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			case *ast.BoolLiteral:
 				env.store[stmt.Name] = v.Value
 			case *ast.BinaryExpression:
-				// Evaluate left and right
-				left := evalExpr(v.Left, env)
-				right := evalExpr(v.Right, env)
-				var result int64
-				l, lok := left.(int64)
-				r, rok := right.(int64)
-				if lok && rok {
-					switch v.Operator {
-					case "+":
-						result = l + r
-					case "-":
-						result = l - r
-					case "*":
-						result = l * r
-					case "/":
-						result = l / r
-					case "%":
-						result = l % r
-					}
-				}
-				env.store[stmt.Name] = result
+				val := evalExpr(v, env)
+				env.store[stmt.Name] = val
 			}
 
 		case *ast.FunctionStatement:
@@ -75,20 +56,21 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			evalExpr(stmt.Expr, env)
 
 		case *ast.IfStatement:
-			// Evaluate the if condition
+			handled := false
 			if isTruthy(evalExpr(stmt.IfCond, env)) {
 				Eval(stmt.IfBody, env)
-				return
+				handled = true
 			}
-			// Check elifs
-			for i, elifCond := range stmt.ElifConds {
-				if isTruthy(evalExpr(elifCond, env)) {
-					Eval(stmt.ElifBodies[i], env)
-					return
+			if !handled {
+				for i, elifCond := range stmt.ElifConds {
+					if isTruthy(evalExpr(elifCond, env)) {
+						Eval(stmt.ElifBodies[i], env)
+						handled = true
+						break
+					}
 				}
 			}
-			// Else
-			if stmt.ElseBody != nil && len(stmt.ElseBody) > 0 {
+			if !handled && stmt.ElseBody != nil && len(stmt.ElseBody) > 0 {
 				Eval(stmt.ElseBody, env)
 			}
 		}
