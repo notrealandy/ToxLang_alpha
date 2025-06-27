@@ -1,9 +1,9 @@
 # TODO List
 
 ## Function Parameters and Arguments
-- [ ] Parse parameters in function definitions.
-- [ ] Parse arguments in function calls.
-- [ ] Bind arguments to parameters in a new local environment when calling a function.
+- [x] Parse parameters in function definitions.
+- [x] Parse arguments in function calls.
+- [x] Bind arguments to parameters in a new local environment when calling a function.
 
 ## Local Variable Scoping
 - [ ] Implement local scope for variables inside functions (so variables in one function don’t leak into others or global scope).

@@ -218,6 +218,8 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
 		}
+	case ',':
+		tok = token.Token{Type: token.COMMA, Literal: ",", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""

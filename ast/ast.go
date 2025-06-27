@@ -15,6 +15,7 @@ type LetStatement struct {
 type FunctionStatement struct {
 	Name       string // function name
 	Params     []string
+	ParamTypes []string
 	Body       []Statement
 	ReturnType string
 	Line       int

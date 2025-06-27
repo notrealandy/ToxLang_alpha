@@ -14,7 +14,7 @@ fnc main () >> void {
     }
     let result int >> add()
     log(result)
-    modifyX()
+    modifyX("TOXXXXX")
     return nil
 }
 
@@ -22,7 +22,10 @@ fnc add () >> int {
     return x + y
 }
 
-fnc modifyX () >> void {
+fnc modifyX (a string) >> void {
+    log("start a")
+    log(a)
+    log("end a")
     log(x)
     x >> x + 5
     log(x)

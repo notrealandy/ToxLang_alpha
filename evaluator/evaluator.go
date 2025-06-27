@@ -152,9 +152,24 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			if !ok {
 				return nil // or error
 			}
-			// Evaluate arguments (not used if you don't support params yet)
-			// Evaluate the function body and capture the return value
-			return evalFunctionBody(fnObj.Body, env)
+			// Evaluate arguments
+			args := []interface{}{}
+			for _, argExpr := range v.Arguments {
+				args = append(args, evalExpr(argExpr, env))
+			}
+			// Create a new local environment for the function call
+			localEnv := NewEnvironment()
+			// Optionally: copy global env for outer variables
+			for k, v := range env.store {
+				localEnv.store[k] = v
+			}
+			// Bind parameters to arguments
+			for i, param := range fnObj.Params {
+				if i < len(args) {
+					localEnv.store[param] = args[i]
+				}
+			}
+			return evalFunctionBody(fnObj.Body, localEnv)
 		}
 		return nil
 	case *ast.UnaryExpression:

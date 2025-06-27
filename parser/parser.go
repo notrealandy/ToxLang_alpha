@@ -122,14 +122,37 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 		return nil
 	}
 
-	// (skip parameter parsing for now)
+	params := []string{}
+	paramTypes := []string{}
+	p.nextToken() // move to first param or ')'
 	for p.curToken.Type != token.RPAREN && p.curToken.Type != token.EOF {
-		p.nextToken()
+		if p.curToken.Type == token.IDENT {
+			paramName := p.curToken.Literal
+			params = append(params, paramName)
+			p.nextToken() // move to type
+
+			if p.curToken.Type != token.TYPE {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected type after parameter '%s' on line %d:%d", paramName, p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+
+			paramTypes = append(paramTypes, p.curToken.Literal)
+			p.nextToken()
+			if p.curToken.Type == token.COMMA {
+				p.nextToken() // skip comma and continue to next param
+			}
+			
+		} else {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected parameter identifier on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
 	}
 	if p.curToken.Type != token.RPAREN {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected ')' after parameters on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
 	}
+	fn.Params = params
+	fn.ParamTypes = paramTypes
 
 	p.nextToken() // move to >>
 	if p.curToken.Type != token.ASSIGN_OP {
