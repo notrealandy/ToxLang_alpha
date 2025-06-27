@@ -6,6 +6,9 @@ const (
 	LET = "LET" // reserved keyword
 	FNC = "FNC" // function keyword
 	LOG = "LOG" // native function keyword
+	IF = "IF" // if statement
+	ELIF = "ELIF" // else if statement
+	ELSE = "ELSE" // else statement
 	RETURN = "RETURN"
 	LPAREN = "LPAREN" // (
 	RPAREN = "RPAREN" // )
@@ -25,6 +28,15 @@ const (
 	MODULUS = "%"
 	NIL = "NIL"
 	COMMA = "COMMA" // ,
+	EQ = "EQ" // ==
+	NEQ = "NEQ" // !=
+	LT = "LT" // <
+	LTE = "LTE" // <=
+	GT = "GT" // >
+	GTE = "GTE" // >=
+	AND = "AND" // &&
+	OR = "OR" // ||
+	NOT = "NOT" // !
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )

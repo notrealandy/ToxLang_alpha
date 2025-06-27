@@ -61,6 +61,37 @@ return 42
 return nil  // for void functions
 ```
 
+### Conditionals: if, elif, else
+
+ToxLang supports `if`, `elif`, and `else` statements for control flow.
+
+```tox
+if x > 1 && x < 10 {
+    log("x is greater than 1 and less than 10")
+} elif x == 1 {
+    log("x is exactly 1")
+} else {
+    log("x is not in the range")
+}
+```
+
+- The `if` block runs if its condition is true.
+- Any number of `elif` blocks can follow, each with their own condition.
+- The `else` block is optional and runs if none of the previous conditions matched.
+- You can use all supported operators (`==`, `!=`, `<`, `>`, `<=`, `>=`, `&&`, `||`, `!`) and parentheses in conditions.
+
+**Examples:**
+
+```tox
+if x > 100 {
+    log("big!")
+} elif x > 10 && x < 100 {
+    log("medium!")
+} else {
+    log("small or negative!")
+}
+```
+
 ### Types
 
 - int

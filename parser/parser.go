@@ -48,6 +48,8 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseLogFunctionStatement()
 		} else if p.curToken.Type == token.RETURN {
 			stmt = p.parseReturnStatement()
+		} else if p.curToken.Type == token.IF {
+			stmt = p.parseIfStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -147,43 +149,7 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 	}
 
 	// Parse body
-	fn.Body = []ast.Statement{}
-	p.nextToken()
-	for {
-		if p.curToken.Type == token.RBRACE || p.curToken.Type == token.EOF {
-			break
-		}
-
-		// Use the main statement parsing logic
-		var stmt ast.Statement
-		if p.curToken.Type == token.LET {
-			stmt = p.parseLetStatement()
-		} else if p.curToken.Type == token.LOG {
-			stmt = p.parseLogFunctionStatement()
-		} else if p.curToken.Type == token.FNC {
-			stmt = p.parseFunctionStatement()
-		} else if p.curToken.Type == token.RETURN {
-			stmt = p.parseReturnStatement()
-		} else {
-			// Try to parse as an expression (e.g., function call)
-			expr := p.parseExpression()
-			if expr != nil {
-				stmt = &ast.ExpressionStatement{
-					Expr: expr,
-					Line: p.curToken.Line,
-					Col:  p.curToken.Col,
-				}
-			} else {
-				p.Errors = append(p.Errors, fmt.Sprintf("[PARSE FNC STATEMENT] unexpected token '%s' in function body on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
-				p.nextToken()
-				continue
-			}
-		}
-
-		if stmt != nil {
-			fn.Body = append(fn.Body, stmt)
-		}
-	}
+	fn.Body = p.parseBlock()
 
 	return fn
 }
@@ -211,7 +177,7 @@ func (p *Parser) parseLogFunctionStatement() *ast.LogFunction {
 }
 
 func (p *Parser) parseExpression() ast.Expression {
-	return p.parseAdditive()
+	return p.parseUnary()
 }
 
 // parseAdditive parses left-associative chains of + and -
@@ -309,6 +275,26 @@ func (p *Parser) parsePrimary() ast.Expression {
 	}
 }
 
+func (p *Parser) parseComparison() ast.Expression {
+    left := p.parseAdditive()
+    for p.curToken.Type == token.EQ || p.curToken.Type == token.NEQ ||
+        p.curToken.Type == token.LT || p.curToken.Type == token.GT ||
+        p.curToken.Type == token.LTE || p.curToken.Type == token.GTE {
+        op := p.curToken.Type
+        line, col := p.curToken.Line, p.curToken.Col
+        p.nextToken()
+        right := p.parseAdditive()
+        left = &ast.BinaryExpression{
+            Left:     left,
+            Operator: op,
+            Right:    right,
+            Line:     line,
+            Col:      col,
+        }
+    }
+    return left
+}
+
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	line, col := p.curToken.Line, p.curToken.Col
 	p.nextToken()
@@ -318,4 +304,129 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		Line:  line,
 		Col:   col,
 	}
+}
+
+func (p *Parser) parseIfStatement() *ast.IfStatement {
+	is := &ast.IfStatement{Line: p.curToken.Line, Col: p.curToken.Col}
+
+    p.nextToken() // move to condition
+    // Parse the condition expression until '{'
+    cond := p.parseExpression()
+    is.IfCond = cond
+
+
+	if p.curToken.Type != token.LBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after if condition on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+
+	// Parse if body
+	ifBody := p.parseBlock()
+
+	// Parse elif blocks
+	var elifConds []ast.Expression
+	var elifBodies [][]ast.Statement
+	for p.curToken.Type == token.ELIF {
+		p.nextToken() // move to elif condition
+		elifCond := p.parseExpression()
+		elifConds = append(elifConds, elifCond)
+		if p.curToken.Type != token.LBRACE {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after elif condition on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return is
+		}
+		elifBody := p.parseBlock()
+		elifBodies = append(elifBodies, elifBody)
+	}
+
+	// Parse else block
+	var elseBody []ast.Statement
+	if p.curToken.Type == token.ELSE {
+		p.nextToken()
+		if p.curToken.Type != token.LBRACE {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after else on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return is
+		}
+		elseBody = p.parseBlock()
+	}
+
+	// Store bodies in the AST node (expand IfStatement struct as needed)
+	is.IfBody = ifBody
+	is.ElifConds = elifConds
+	is.ElifBodies = elifBodies
+	is.ElseBody = elseBody
+
+	return is
+}
+
+func (p *Parser) parseBlock() []ast.Statement {
+	stmts := []ast.Statement{}
+	p.nextToken() // move past '{'
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		var stmt ast.Statement
+		switch p.curToken.Type {
+		case token.LET:
+			stmt = p.parseLetStatement()
+		case token.FNC:
+			stmt = p.parseFunctionStatement()
+		case token.LOG:
+			stmt = p.parseLogFunctionStatement()
+		case token.RETURN:
+			stmt = p.parseReturnStatement()
+		case token.IF:
+			stmt = p.parseIfStatement()
+		default:
+			expr := p.parseExpression()
+			if expr != nil {
+				stmt = &ast.ExpressionStatement{
+					Expr: expr,
+					Line: p.curToken.Line,
+					Col:  p.curToken.Col,
+				}
+			} else {
+				p.Errors = append(p.Errors, fmt.Sprintf("[PARSE BLOCK] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+				p.nextToken()
+				continue
+			}
+		}
+		if stmt != nil {
+			stmts = append(stmts, stmt)
+		}
+	}
+	p.nextToken() // skip '}'
+	return stmts
+}
+
+func (p *Parser) parseLogical() ast.Expression {
+    left := p.parseComparison()
+    for p.curToken.Type == token.AND || p.curToken.Type == token.OR {
+        op := p.curToken.Type
+        line, col := p.curToken.Line, p.curToken.Col
+        p.nextToken()
+        right := p.parseComparison()
+        left = &ast.BinaryExpression{
+            Left:     left,
+            Operator: op,
+            Right:    right,
+            Line:     line,
+            Col:      col,
+        }
+    }
+    return left
+}
+
+func (p *Parser) parseUnary() ast.Expression {
+    if p.curToken.Type == token.NOT {
+        op := p.curToken.Type
+        line, col := p.curToken.Line, p.curToken.Col
+        p.nextToken()
+        right := p.parseUnary()
+        return &ast.BinaryExpression{
+            Left:     nil,
+            Operator: op,
+            Right:    right,
+            Line:     line,
+            Col:      col,
+        }
+    }
+    return p.parseLogical()
 }

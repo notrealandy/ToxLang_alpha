@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/notrealandy/tox/ast"
+	"github.com/notrealandy/tox/token"
 )
 
 // Environment stores variable values
@@ -72,6 +73,24 @@ func Eval(stmts []ast.Statement, env *Environment) {
 
 		case *ast.ExpressionStatement:
 			evalExpr(stmt.Expr, env)
+
+		case *ast.IfStatement:
+			// Evaluate the if condition
+			if isTruthy(evalExpr(stmt.IfCond, env)) {
+				Eval(stmt.IfBody, env)
+				return
+			}
+			// Check elifs
+			for i, elifCond := range stmt.ElifConds {
+				if isTruthy(evalExpr(elifCond, env)) {
+					Eval(stmt.ElifBodies[i], env)
+					return
+				}
+			}
+			// Else
+			if stmt.ElseBody != nil && len(stmt.ElseBody) > 0 {
+				Eval(stmt.ElseBody, env)
+			}
 		}
 	}
 }
@@ -92,20 +111,56 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		right := evalExpr(v.Right, env)
 		l, lok := left.(int64)
 		r, rok := right.(int64)
-		if lok && rok {
-			switch v.Operator {
-			case "+":
+
+		switch v.Operator {
+		case token.PLUS:
+			if lok && rok {
 				return l + r
-			case "-":
+			}
+		case token.MINUS:
+			if lok && rok {
 				return l - r
-			case "*":
+			}
+		case token.ASTERISK:
+			if lok && rok {
 				return l * r
-			case "/":
+			}
+		case token.SLASH:
+			if lok && rok {
 				return l / r
-			case "%":
+			}
+		case token.MODULUS:
+			if lok && rok {
 				return l % r
 			}
+		case token.EQ:
+			return left == right
+		case token.NEQ:
+			return left != right
+		case token.LT:
+			if lok && rok {
+				return l < r
+			}
+		case token.LTE:
+			if lok && rok {
+				return l <= r
+			}
+		case token.GT:
+			if lok && rok {
+				return l > r
+			}
+		case token.GTE:
+			if lok && rok {
+				return l >= r
+			}
+		case token.AND:
+			return isTruthy(left) && isTruthy(right)
+		case token.OR:
+			return isTruthy(left) || isTruthy(right)
+		case token.NOT:
+			return !isTruthy(right)
 		}
+		return nil
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
 			fnObj, ok := env.GetFunction(ident.Value)
@@ -131,4 +186,17 @@ func evalFunctionBody(stmts []ast.Statement, env *Environment) interface{} {
 		}
 	}
 	return nil
+}
+
+func isTruthy(val interface{}) bool {
+	switch v := val.(type) {
+	case bool:
+		return v
+	case int64:
+		return v != 0
+	case string:
+		return v != ""
+	default:
+		return v != nil
+	}
 }

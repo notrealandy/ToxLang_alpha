@@ -12,7 +12,7 @@
 - [ ] Support updating the value of an existing variable (e.g., `x >> 10`).
 
 ## If Statements / Conditionals
-- [ ] Add support for `if` and `else` blocks for control flow.
+- [x] Add support for `if` and `else` blocks for control flow.
 
 ## Loops
 - [ ] Add support for `while` or `for` loops.

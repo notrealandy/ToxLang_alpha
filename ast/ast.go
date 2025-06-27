@@ -33,6 +33,16 @@ type ReturnStatement struct {
 	Col   int
 }
 
+type IfStatement struct {
+    IfCond    Expression      // condition for the if
+    IfBody    []Statement     // body for the if
+    ElifConds []Expression    // conditions for each elif
+    ElifBodies [][]Statement  // bodies for each elif
+    ElseBody  []Statement     // body for else, if present
+	Line  int
+	Col   int
+}
+
 type Identifier struct {
 	Value string
 	Type  token.TokenType
@@ -80,14 +90,15 @@ type BoolLiteral struct {
 	Value bool
 }
 
-func (lf *LogFunction) statementNode()     {}
-func (rs *ReturnStatement) statementNode() {}
-
-func (id *Identifier) expressionNode()         {}
-func (il *IntegerLiteral) expressionNode()     {}
-func (sl *StringLiteral) expressionNode()      {}
-func (bl *BoolLiteral) expressionNode()        {}
-func (be *BinaryExpression) expressionNode()   {}
-func (nl *NilLiteral) expressionNode()         {}
-func (ce *CallExpression) expressionNode()     {}
+func (lf *LogFunction) statementNode()         {}
+func (rs *ReturnStatement) statementNode()     {}
 func (es *ExpressionStatement) statementNode() {}
+func (is *IfStatement) statementNode()         {}
+
+func (id *Identifier) expressionNode()       {}
+func (il *IntegerLiteral) expressionNode()   {}
+func (sl *StringLiteral) expressionNode()    {}
+func (bl *BoolLiteral) expressionNode()      {}
+func (be *BinaryExpression) expressionNode() {}
+func (nl *NilLiteral) expressionNode()       {}
+func (ce *CallExpression) expressionNode()   {}

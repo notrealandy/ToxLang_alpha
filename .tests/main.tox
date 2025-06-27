@@ -1,13 +1,7 @@
+let x int >> 9
 
-
-fnc main () >> void {
-    let x int >> 2
-    test()
-    log(x)
-}
-
-fnc test () >> void {
-    let a int >> 11
-    log(a)
-    return nil
+if x > 1 && x < 10 {
+    log("x is greater than 1 and less than 10")
+} else {
+    log("x is not in the range")
 }

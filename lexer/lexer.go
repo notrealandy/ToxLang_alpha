@@ -122,6 +122,12 @@ func lookupIdent(ident string) token.TokenType {
 		return token.RETURN
 	case "nil":
 		return token.NIL
+	case "if":
+		return token.IF
+	case "elif":
+		return token.ELIF
+	case "else":
+		return token.ELSE
 	default:
 		return token.IDENT
 	}
@@ -140,6 +146,30 @@ func (l *Lexer) NextToken() token.Token {
 			ch := l.ch
 			l.readChar()
 			tok = token.Token{Type: token.ASSIGN_OP, Literal: string(ch) + string(l.ch), Line: l.line, Col: startCol}
+		} else if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.GTE, Literal: ">=", Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.GT, Literal: ">", Line: l.line, Col: startCol} // <-- FIXED HERE
+		}
+	case '<':
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.LTE, Literal: "<=", Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.LT, Literal: "<", Line: l.line, Col: startCol}
+		}
+	case '=':
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.EQ, Literal: "==", Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
+	case '!':
+		if l.peekChar() == '=' {
+			l.readChar()
+			tok = token.Token{Type: token.NEQ, Literal: "!=", Line: l.line, Col: startCol}
 		} else {
 			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
 		}
@@ -167,6 +197,20 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.SLASH, Literal: "/", Line: l.line, Col: startCol}
 	case '%':
 		tok = token.Token{Type: token.MODULUS, Literal: "%", Line: l.line, Col: startCol}
+	case '&':
+		if l.peekChar() == '&' {
+			l.readChar()
+			tok = token.Token{Type: token.AND, Literal: "&&", Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
+	case '|':
+		if l.peekChar() == '|' {
+			l.readChar()
+			tok = token.Token{Type: token.OR, Literal: "||", Line: l.line, Col: startCol}
+		} else {
+			tok = token.Token{Type: token.ILLEGAL, Literal: string(l.ch), Line: l.line, Col: startCol}
+		}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""
