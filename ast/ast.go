@@ -51,6 +51,22 @@ type AssignmentStatement struct {
 	Col   int
 }
 
+type WhileStatement struct {
+	Condition Expression
+	Body      []Statement
+	Line      int
+	Col       int
+}
+
+type ForStatement struct {
+	Init      Statement  // e.g. let i int >> 0 or i >> 0
+	Condition Expression // e.g. i < 10
+	Post      Statement  // e.g. i >> i + 1
+	Body      []Statement
+	Line      int
+	Col       int
+}
+
 type Identifier struct {
 	Value string
 	Type  token.TokenType
@@ -110,6 +126,8 @@ func (rs *ReturnStatement) statementNode()     {}
 func (es *ExpressionStatement) statementNode() {}
 func (is *IfStatement) statementNode()         {}
 func (as *AssignmentStatement) statementNode() {}
+func (ws *WhileStatement) statementNode()      {}
+func (fs *ForStatement) statementNode()        {}
 
 func (id *Identifier) expressionNode()       {}
 func (il *IntegerLiteral) expressionNode()   {}

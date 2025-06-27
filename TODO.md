@@ -22,7 +22,7 @@
 - [ ] add public function/variable by typing `pub` before it `pub let x int >> 1` or `pub fnc helloTox () >> void {}`
 
 ## Loops
-- [ ] Add support for `while` or `for` loops.
+- [x] Add support for `while` or `for` loops.
 
 ## Boolean Operators
 - [x] Support logical operators: `&&`, `||`, `!`.

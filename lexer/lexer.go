@@ -135,6 +135,10 @@ func lookupIdent(ident string) token.TokenType {
 		return token.ELIF
 	case "else":
 		return token.ELSE
+	case "while":
+		return token.WHILE
+	case "for":
+		return token.FOR
 	default:
 		return token.IDENT
 	}
@@ -220,6 +224,8 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case ',':
 		tok = token.Token{Type: token.COMMA, Literal: ",", Line: l.line, Col: startCol}
+		case ';':
+		tok = token.Token{Type: token.SEMICOLON, Literal: ";", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""

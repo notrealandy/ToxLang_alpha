@@ -34,15 +34,27 @@
 //     log(x)
 // }
 
-let x int >> 1
+// let x int >> 1
 
-fnc main () >> void {
-    let x int >> 7
-    log(x)
-    bar()
-}
+// fnc main () >> void {
+//     let x int >> 7
+//     log(x)
+//     bar()
+// }
 
-fnc bar () >> void {
-    x >> 2
-    log(x)
+// fnc bar () >> void {
+//     x >> 2
+//     log(x)
+// }
+
+// fnc main() >> void {
+//     let x int >> 0
+//     while x < 5 {
+//         log(x)
+//         x >> x + 1
+//     }
+// }
+
+for let i int >> 0; i < 5; i >> i + 1 {
+    log(i)
 }

@@ -23,7 +23,7 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 		return ""
 	case *ast.BinaryExpression:
 		switch v.Operator {
-		case token.EQ, token.NEQ, token.LT, token.LTE, token.GT, token.GTE, token.AND, token.OR, token.NOT:
+		case token.EQ, token.NEQ, token.LT, token.LTE, token.GT, token.GTE, token.AND, token.OR:
 			return "bool"
 		case token.PLUS, token.MINUS, token.ASTERISK, token.SLASH, token.MODULUS:
 			return "int"
@@ -137,6 +137,32 @@ func checkWithReturnType(
 			if call, ok := stmt.Expr.(*ast.CallExpression); ok {
 				errs = append(errs, checkCallExpr(call, funcDefs, funcTypes, varTypes, stmt.Line, stmt.Col)...)
 			}
+		case *ast.WhileStatement:
+			condType := inferExprType(stmt.Condition, funcTypes, varTypes)
+			if condType != "bool" {
+				errs = append(errs, fmt.Errorf("While condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
+			}
+			// Typecheck the body
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, copyVarTypes(varTypes))...)
+
+		case *ast.ForStatement:
+			// New scope for the for loop
+			forVarTypes := copyVarTypes(varTypes)
+			// Typecheck the init statement
+			if stmt.Init != nil {
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Init}, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+			}
+			// Typecheck the condition
+			condType := inferExprType(stmt.Condition, funcTypes, forVarTypes)
+			if condType != "bool" {
+				errs = append(errs, fmt.Errorf("For condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
+			}
+			// Typecheck the body
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+			// Typecheck the post statement
+			if stmt.Post != nil {
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Post}, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+			}
 		}
 	}
 
@@ -173,4 +199,13 @@ func checkCallExpr(
 		}
 	}
 	return errs
+}
+
+// Helper to copy variable types map for new scopes
+func copyVarTypes(src map[string]string) map[string]string {
+	dst := make(map[string]string)
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }

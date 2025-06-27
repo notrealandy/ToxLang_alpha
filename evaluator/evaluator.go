@@ -45,10 +45,10 @@ func (env *Environment) SetExisting(name string, val interface{}) bool {
 }
 
 func getGlobalEnv(env *Environment) *Environment {
-    for env.parent != nil {
-        env = env.parent
-    }
-    return env
+	for env.parent != nil {
+		env = env.parent
+	}
+	return env
 }
 
 // Eval evaluates a program (list of statements)
@@ -88,6 +88,24 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			if !env.SetExisting(stmt.Name, val) {
 				// If variable doesn't exist in any scope, create it in the current scope
 				env.Set(stmt.Name, val)
+			}
+		case *ast.WhileStatement:
+			for isTruthy(evalExpr(stmt.Condition, env)) {
+				Eval(stmt.Body, env)
+			}
+		case *ast.ForStatement:
+			// New scope for the for loop
+			forEnv := NewEnclosedEnvironment(env)
+			// Run init
+			if stmt.Init != nil {
+				Eval([]ast.Statement{stmt.Init}, forEnv)
+			}
+			// Loop
+			for isTruthy(evalExpr(stmt.Condition, forEnv)) {
+				Eval(stmt.Body, forEnv)
+				if stmt.Post != nil {
+					Eval([]ast.Statement{stmt.Post}, forEnv)
+				}
 			}
 		}
 	}

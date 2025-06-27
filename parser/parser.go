@@ -52,6 +52,10 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseIfStatement()
 		} else if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
 			stmt = p.parseAssignmentStatement()
+		} else if p.curToken.Type == token.WHILE {
+			stmt = p.parseWhileStatement()
+		} else if p.curToken.Type == token.FOR {
+			stmt = p.parseForStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -141,7 +145,7 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 			if p.curToken.Type == token.COMMA {
 				p.nextToken() // skip comma and continue to next param
 			}
-			
+
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("expected parameter identifier on line %d:%d", p.curToken.Line, p.curToken.Col))
 			return nil
@@ -398,6 +402,10 @@ func (p *Parser) parseBlock() []ast.Statement {
 			stmt = p.parseReturnStatement()
 		case token.IF:
 			stmt = p.parseIfStatement()
+		case token.WHILE:
+			stmt = p.parseWhileStatement()
+		case token.FOR:
+			stmt = p.parseForStatement()
 		default:
 			if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
 				stmt = p.parseAssignmentStatement()
@@ -474,4 +482,62 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
 		Line:  line,
 		Col:   col,
 	}
+}
+
+func (p *Parser) parseWhileStatement() *ast.WhileStatement {
+	ws := &ast.WhileStatement{Line: p.curToken.Line, Col: p.curToken.Col}
+	p.nextToken() // move to condition
+	ws.Condition = p.parseExpression()
+	if p.curToken.Type != token.LBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after while condition on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	ws.Body = p.parseBlock()
+	return ws
+}
+
+func (p *Parser) parseForStatement() *ast.ForStatement {
+	fs := &ast.ForStatement{Line: p.curToken.Line, Col: p.curToken.Col}
+	p.nextToken() // move to init
+
+	// Parse init statement (let or assignment)
+	var init ast.Statement
+	if p.curToken.Type == token.LET {
+		init = p.parseLetStatement()
+	} else if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
+		init = p.parseAssignmentStatement()
+	} else {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected init statement in for loop on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	fs.Init = init
+
+	if p.curToken.Type != token.SEMICOLON {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected ';' after for-init on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken()
+
+	// Parse condition
+	fs.Condition = p.parseExpression()
+	if p.curToken.Type != token.SEMICOLON {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected ';' after for-condition on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken()
+
+	// Parse post statement (assignment)
+	if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
+		fs.Post = p.parseAssignmentStatement()
+	} else {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected post statement in for loop on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+
+	if p.curToken.Type != token.LBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after for-post on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	fs.Body = p.parseBlock()
+	return fs
 }

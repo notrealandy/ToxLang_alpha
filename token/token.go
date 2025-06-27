@@ -9,6 +9,8 @@ const (
 	IF = "IF" // if statement
 	ELIF = "ELIF" // else if statement
 	ELSE = "ELSE" // else statement
+	WHILE = "WHILE" // while loop
+	FOR = "FOR" // for loop
 	RETURN = "RETURN"
 	LPAREN = "LPAREN" // (
 	RPAREN = "RPAREN" // )
@@ -37,6 +39,7 @@ const (
 	AND = "AND" // &&
 	OR = "OR" // ||
 	NOT = "NOT" // !
+	SEMICOLON = "SEMICOLON" // ;
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )
