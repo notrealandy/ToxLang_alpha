@@ -18,7 +18,7 @@
 - [ ] Add support for `while` or `for` loops.
 
 ## Boolean Operators
-- [ ] Support logical operators: `&&`, `||`, `!`.
+- [x] Support logical operators: `&&`, `||`, `!`.
 
 ## Arrays or Lists
 - [ ] Add support for array types, literals, and indexing.

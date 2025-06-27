@@ -1,7 +1,22 @@
-let x int >> 9
+let x int >> 7
+let y int >> 3 + 2 * (x - 4)
+let msg string >> "Hello, Tox!"
+let flag bool >> x > 5 && y < 10
 
-if x > 1 && x < 10 {
-    log("x is greater than 1 and less than 10")
-} else {
-    log("x is not in the range")
+fnc main () >> void {
+    log(msg)
+    if flag {
+        log("Flag is true!")
+    } elif x == 7 || y == 7 {
+        log("One of the values is 7")
+    } else {
+        log("No condition met")
+    }
+    let result int >> add()
+    log(result)
+    return nil
+}
+
+fnc add () >> int {
+    return x + y
 }
