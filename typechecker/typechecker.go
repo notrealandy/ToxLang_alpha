@@ -58,10 +58,10 @@ func Check(stmts []ast.Statement) []error {
 			funcTypes[fn.Name] = fn.ReturnType
 		}
 	}
-	return checkWithReturnType(stmts, "", funcTypes)
+	return checkWithReturnType(stmts, "", funcTypes, map[string]string{})
 }
 
-func checkWithReturnType(stmts []ast.Statement, currentReturnType string, funcTypes map[string]string) []error {
+func checkWithReturnType(stmts []ast.Statement, currentReturnType string, funcTypes map[string]string, varTypes map[string]string) []error {
 	var errs []error
 
 	// Build funcTypes for nested functions
@@ -74,6 +74,7 @@ func checkWithReturnType(stmts []ast.Statement, currentReturnType string, funcTy
 	for _, s := range stmts {
 		switch stmt := s.(type) {
 		case *ast.LetStatement:
+			varTypes[stmt.Name] = stmt.Type
 			switch v := stmt.Value.(type) {
 			case *ast.StringLiteral:
 				if stmt.Type != "string" {
@@ -103,8 +104,12 @@ func checkWithReturnType(stmts []ast.Statement, currentReturnType string, funcTy
 				errs = append(errs, fmt.Errorf("Unknown value type for variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
 			}
 		case *ast.FunctionStatement:
-			// Pass the function's declared return type to its body
-			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes)...)
+			// Pass a copy of the current varTypes to the function body
+			funcVarTypes := make(map[string]string)
+			for k, v := range varTypes {
+				funcVarTypes[k] = v
+			}
+			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes, funcVarTypes)...)
 		case *ast.ReturnStatement:
 			if currentReturnType == "void" {
 				if stmt.Value != nil {
@@ -120,6 +125,16 @@ func checkWithReturnType(stmts []ast.Statement, currentReturnType string, funcTy
 					if valType != currentReturnType {
 						errs = append(errs, fmt.Errorf("Return type mismatch on line %d:%d: expected %s, got %s", stmt.Line, stmt.Col, currentReturnType, valType))
 					}
+				}
+			}
+		case *ast.AssignmentStatement:
+			expectedType, ok := varTypes[stmt.Name]
+			if !ok {
+				errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
+			} else {
+				valType := inferExprType(stmt.Value, funcTypes)
+				if valType != expectedType {
+					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
 				}
 			}
 		}

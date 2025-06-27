@@ -50,6 +50,8 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseReturnStatement()
 		} else if p.curToken.Type == token.IF {
 			stmt = p.parseIfStatement()
+		} else if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
+			stmt = p.parseAssignmentStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -276,23 +278,23 @@ func (p *Parser) parsePrimary() ast.Expression {
 }
 
 func (p *Parser) parseComparison() ast.Expression {
-    left := p.parseAdditive()
-    for p.curToken.Type == token.EQ || p.curToken.Type == token.NEQ ||
-        p.curToken.Type == token.LT || p.curToken.Type == token.GT ||
-        p.curToken.Type == token.LTE || p.curToken.Type == token.GTE {
-        op := p.curToken.Type
-        line, col := p.curToken.Line, p.curToken.Col
-        p.nextToken()
-        right := p.parseAdditive()
-        left = &ast.BinaryExpression{
-            Left:     left,
-            Operator: op,
-            Right:    right,
-            Line:     line,
-            Col:      col,
-        }
-    }
-    return left
+	left := p.parseAdditive()
+	for p.curToken.Type == token.EQ || p.curToken.Type == token.NEQ ||
+		p.curToken.Type == token.LT || p.curToken.Type == token.GT ||
+		p.curToken.Type == token.LTE || p.curToken.Type == token.GTE {
+		op := p.curToken.Type
+		line, col := p.curToken.Line, p.curToken.Col
+		p.nextToken()
+		right := p.parseAdditive()
+		left = &ast.BinaryExpression{
+			Left:     left,
+			Operator: op,
+			Right:    right,
+			Line:     line,
+			Col:      col,
+		}
+	}
+	return left
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
@@ -309,11 +311,10 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 func (p *Parser) parseIfStatement() *ast.IfStatement {
 	is := &ast.IfStatement{Line: p.curToken.Line, Col: p.curToken.Col}
 
-    p.nextToken() // move to condition
-    // Parse the condition expression until '{'
-    cond := p.parseExpression()
-    is.IfCond = cond
-
+	p.nextToken() // move to condition
+	// Parse the condition expression until '{'
+	cond := p.parseExpression()
+	is.IfCond = cond
 
 	if p.curToken.Type != token.LBRACE {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected '{' after if condition on line %d:%d", p.curToken.Line, p.curToken.Col))
@@ -375,17 +376,21 @@ func (p *Parser) parseBlock() []ast.Statement {
 		case token.IF:
 			stmt = p.parseIfStatement()
 		default:
-			expr := p.parseExpression()
-			if expr != nil {
-				stmt = &ast.ExpressionStatement{
-					Expr: expr,
-					Line: p.curToken.Line,
-					Col:  p.curToken.Col,
-				}
+			if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
+				stmt = p.parseAssignmentStatement()
 			} else {
-				p.Errors = append(p.Errors, fmt.Sprintf("[PARSE BLOCK] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
-				p.nextToken()
-				continue
+				expr := p.parseExpression()
+				if expr != nil {
+					stmt = &ast.ExpressionStatement{
+						Expr: expr,
+						Line: p.curToken.Line,
+						Col:  p.curToken.Col,
+					}
+				} else {
+					p.Errors = append(p.Errors, fmt.Sprintf("[PARSE BLOCK] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+					p.nextToken()
+					continue
+				}
 			}
 		}
 		if stmt != nil {
@@ -397,35 +402,53 @@ func (p *Parser) parseBlock() []ast.Statement {
 }
 
 func (p *Parser) parseLogical() ast.Expression {
-    left := p.parseComparison()
-    for p.curToken.Type == token.AND || p.curToken.Type == token.OR {
-        op := p.curToken.Type
-        line, col := p.curToken.Line, p.curToken.Col
-        p.nextToken()
-        right := p.parseComparison()
-        left = &ast.BinaryExpression{
-            Left:     left,
-            Operator: op,
-            Right:    right,
-            Line:     line,
-            Col:      col,
-        }
-    }
-    return left
+	left := p.parseComparison()
+	for p.curToken.Type == token.AND || p.curToken.Type == token.OR {
+		op := p.curToken.Type
+		line, col := p.curToken.Line, p.curToken.Col
+		p.nextToken()
+		right := p.parseComparison()
+		left = &ast.BinaryExpression{
+			Left:     left,
+			Operator: op,
+			Right:    right,
+			Line:     line,
+			Col:      col,
+		}
+	}
+	return left
 }
 
 func (p *Parser) parseUnary() ast.Expression {
-    if p.curToken.Type == token.NOT || p.curToken.Type == token.MINUS {
-        op := p.curToken.Type
-        line, col := p.curToken.Line, p.curToken.Col
-        p.nextToken()
-        right := p.parseUnary()
-        return &ast.UnaryExpression{
-            Operator: op,
-            Right:    right,
-            Line:     line,
-            Col:      col,
-        }
-    }
-    return p.parseLogical()
+	if p.curToken.Type == token.NOT || p.curToken.Type == token.MINUS {
+		op := p.curToken.Type
+		line, col := p.curToken.Line, p.curToken.Col
+		p.nextToken()
+		right := p.parseUnary()
+		return &ast.UnaryExpression{
+			Operator: op,
+			Right:    right,
+			Line:     line,
+			Col:      col,
+		}
+	}
+	return p.parseLogical()
+}
+
+func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
+	name := p.curToken.Literal
+	line, col := p.curToken.Line, p.curToken.Col
+	p.nextToken()
+	if p.curToken.Type != token.ASSIGN_OP {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after identifier on line %d:%d", line, col))
+		return nil
+	}
+	p.nextToken()
+	value := p.parseExpression()
+	return &ast.AssignmentStatement{
+		Name:  name,
+		Value: value,
+		Line:  line,
+		Col:   col,
+	}
 }

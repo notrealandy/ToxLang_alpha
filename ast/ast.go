@@ -43,6 +43,13 @@ type IfStatement struct {
 	Col        int
 }
 
+type AssignmentStatement struct {
+	Name  string
+	Value Expression
+	Line  int
+	Col   int
+}
+
 type Identifier struct {
 	Value string
 	Type  token.TokenType
@@ -101,6 +108,7 @@ func (lf *LogFunction) statementNode()         {}
 func (rs *ReturnStatement) statementNode()     {}
 func (es *ExpressionStatement) statementNode() {}
 func (is *IfStatement) statementNode()         {}
+func (as *AssignmentStatement) statementNode() {}
 
 func (id *Identifier) expressionNode()       {}
 func (il *IntegerLiteral) expressionNode()   {}

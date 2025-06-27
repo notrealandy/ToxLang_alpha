@@ -9,7 +9,7 @@
 - [ ] Implement local scope for variables inside functions (so variables in one function don’t leak into others or global scope).
 
 ## Variable Assignment (not just declaration)
-- [ ] Support updating the value of an existing variable (e.g., `x >> 10`).
+- [x] Support updating the value of an existing variable (e.g., `x >> 10`).
 
 ## If Statements / Conditionals
 - [x] Add support for `if` and `else` blocks for control flow.

@@ -14,9 +14,16 @@ fnc main () >> void {
     }
     let result int >> add()
     log(result)
+    modifyX()
     return nil
 }
 
 fnc add () >> int {
     return x + y
+}
+
+fnc modifyX () >> void {
+    log(x)
+    x >> x + 5
+    log(x)
 }

@@ -73,6 +73,9 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			if !handled && stmt.ElseBody != nil && len(stmt.ElseBody) > 0 {
 				Eval(stmt.ElseBody, env)
 			}
+		case *ast.AssignmentStatement:
+			val := evalExpr(stmt.Value, env)
+			env.store[stmt.Name] = val
 		}
 	}
 }
