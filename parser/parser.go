@@ -50,7 +50,7 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseReturnStatement()
 		} else if p.curToken.Type == token.IF {
 			stmt = p.parseIfStatement()
-		} else if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
+		} else if p.curToken.Type == token.IDENT && (p.peekToken.Type == token.ASSIGN_OP || p.peekToken.Type == token.LBRACKET) {
 			stmt = p.parseAssignmentStatement()
 		} else if p.curToken.Type == token.WHILE {
 			stmt = p.parseWhileStatement()
@@ -91,6 +91,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	typ := p.curToken.Literal
 	p.nextToken()
+	if p.curToken.Type == token.LBRACKET && p.peekToken.Type == token.RBRACKET {
+		typ += "[]"
+		p.nextToken() // skip [
+		p.nextToken() // skip ]
+	}
 
 	if p.curToken.Type != token.ASSIGN_OP {
 		p.Errors = append(p.Errors, fmt.Sprintf("[PARSE LET STATEMENT] expected assignment operator '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
@@ -268,21 +273,37 @@ func (p *Parser) parsePrimary() ast.Expression {
 		lit := &ast.BoolLiteral{Value: boolVal}
 		p.nextToken()
 		return lit
-	case token.IDENT:
+	case token.IDENT, token.LEN:
 		var expr ast.Expression = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 		p.nextToken()
-		// Support chaining: foo(), foo()(), etc.
+		// Support function calls: foo(), len(), etc.
 		for p.curToken.Type == token.LPAREN {
-			p.nextToken() // move to first arg or RPAREN
+			p.nextToken()
 			args := []ast.Expression{}
-			for p.curToken.Type != token.RPAREN && p.curToken.Type != token.EOF {
+			if p.curToken.Type != token.RPAREN {
 				args = append(args, p.parseExpression())
-				if p.curToken.Type == token.COMMA {
+				for p.curToken.Type == token.COMMA {
 					p.nextToken()
+					args = append(args, p.parseExpression())
 				}
 			}
-			p.nextToken() // skip ')'
+			if p.curToken.Type != token.RPAREN {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected ')' after function call on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
 			expr = &ast.CallExpression{Function: expr, Arguments: args}
+		}
+		// Support arr[0] and chaining
+		for p.curToken.Type == token.LBRACKET {
+			p.nextToken()
+			index := p.parseExpression()
+			if p.curToken.Type != token.RBRACKET {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after index on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
+			expr = &ast.IndexExpression{Left: expr, Index: index}
 		}
 		return expr
 	case token.LPAREN:
@@ -298,6 +319,17 @@ func (p *Parser) parsePrimary() ast.Expression {
 		expr := &ast.NilLiteral{}
 		p.nextToken()
 		return expr
+	case token.LBRACKET:
+		elements := []ast.Expression{}
+		p.nextToken()
+		for p.curToken.Type != token.RBRACKET && p.curToken.Type != token.EOF {
+			elements = append(elements, p.parseExpression())
+			if p.curToken.Type == token.COMMA {
+				p.nextToken()
+			}
+		}
+		p.nextToken() // skip ']'
+		return &ast.ArrayLiteral{Elements: elements}
 	default:
 		p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PRIMARY] unexpected token '%s' in expression on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 		return nil
@@ -467,17 +499,45 @@ func (p *Parser) parseUnary() ast.Expression {
 }
 
 func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
-	name := p.curToken.Literal
 	line, col := p.curToken.Line, p.curToken.Col
-	p.nextToken()
+
+	// Parse left side: could be identifier or index expression
+	var left ast.Expression
+	if p.curToken.Type == token.IDENT {
+		left = &ast.Identifier{Value: p.curToken.Literal, Line: line, Col: col}
+		p.nextToken()
+		// Support xs[0] on left side
+		for p.curToken.Type == token.LBRACKET {
+			p.nextToken()
+			index := p.parseExpression()
+			if p.curToken.Type != token.RBRACKET {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after index on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
+			left = &ast.IndexExpression{Left: left, Index: index}
+		}
+	} else {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected identifier or index expression on line %d:%d", line, col))
+		return nil
+	}
+
 	if p.curToken.Type != token.ASSIGN_OP {
-		p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after identifier on line %d:%d", line, col))
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after assignment target on line %d:%d", line, col))
 		return nil
 	}
 	p.nextToken()
 	value := p.parseExpression()
+
+	// If left is identifier, set Name; if index, set Left
+	name := ""
+	if ident, ok := left.(*ast.Identifier); ok {
+		name = ident.Value
+	}
+
 	return &ast.AssignmentStatement{
 		Name:  name,
+		Left:  left,
 		Value: value,
 		Line:  line,
 		Col:   col,

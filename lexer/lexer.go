@@ -42,19 +42,19 @@ func (l *Lexer) readChar() {
 
 // a function to skip whitespaces and other non-important characters in code
 func (l *Lexer) skipWhitespace() {
-    for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || (l.ch == '/' && l.peekChar() == '/') {
-        if l.ch == '/' && l.peekChar() == '/' {
-            // Skip the comment
-            for l.ch != '\n' && l.ch != 0 {
-                l.readChar()
-            }
-        } else {
-            if l.ch == '\n' {
-                l.line++
-            }
-            l.readChar()
-        }
-    }
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' || (l.ch == '/' && l.peekChar() == '/') {
+		if l.ch == '/' && l.peekChar() == '/' {
+			// Skip the comment
+			for l.ch != '\n' && l.ch != 0 {
+				l.readChar()
+			}
+		} else {
+			if l.ch == '\n' {
+				l.line++
+			}
+			l.readChar()
+		}
+	}
 }
 
 // a function that allows you to look which character is next
@@ -139,6 +139,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.WHILE
 	case "for":
 		return token.FOR
+	case "len":
+		return token.LEN
 	default:
 		return token.IDENT
 	}
@@ -224,8 +226,12 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case ',':
 		tok = token.Token{Type: token.COMMA, Literal: ",", Line: l.line, Col: startCol}
-		case ';':
+	case ';':
 		tok = token.Token{Type: token.SEMICOLON, Literal: ";", Line: l.line, Col: startCol}
+	case '[':
+		tok = token.Token{Type: token.LBRACKET, Literal: "[", Line: l.line, Col: startCol}
+	case ']':
+		tok = token.Token{Type: token.RBRACKET, Literal: "]", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""
@@ -252,9 +258,9 @@ func (l *Lexer) NextToken() token.Token {
 }
 
 func (l *Lexer) skipComment() {
-    if l.ch == '/' && l.peekChar() == '/' {
-        for l.ch != '\n' && l.ch != 0 {
-            l.readChar()
-        }
-    }
+	if l.ch == '/' && l.peekChar() == '/' {
+		for l.ch != '\n' && l.ch != 0 {
+			l.readChar()
+		}
+	}
 }

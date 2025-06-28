@@ -6,6 +6,7 @@ const (
 	LET = "LET" // reserved keyword
 	FNC = "FNC" // function keyword
 	LOG = "LOG" // native function keyword
+	LEN = "LEN" // native function keyword
 	IF = "IF" // if statement
 	ELIF = "ELIF" // else if statement
 	ELSE = "ELSE" // else statement
@@ -16,6 +17,8 @@ const (
 	RPAREN = "RPAREN" // )
 	LBRACE = "LBRACE" // {
 	RBRACE = "RBRACE" // }
+	LBRACKET = "LBRACKET" // [
+	RBRACKET = "RBRACKET" // ]
 	IDENT = "IDENT" // variables/functions
 	TYPE = "TYPE" // string, int, bool
 	ASSIGN_OP = "ASSIGN_OP" // >>
@@ -40,6 +43,7 @@ const (
 	OR = "OR" // ||
 	NOT = "NOT" // !
 	SEMICOLON = "SEMICOLON" // ;
+	COLON = "COLON" // :
 	ILLEGAL = "ILLEGAL"
 	EOF = "EOF"
 )

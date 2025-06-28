@@ -33,6 +33,9 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 	case *ast.CallExpression:
 		if v.Function != nil {
 			if ident, ok := v.Function.(*ast.Identifier); ok {
+				if ident.Value == "len" {
+					return "int"
+				}
 				if ret, ok := funcTypes[ident.Value]; ok {
 					return ret
 				}
@@ -48,6 +51,23 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 		default:
 			return ""
 		}
+	case *ast.ArrayLiteral:
+		if len(v.Elements) == 0 {
+			return "unknown[]" // or error
+		}
+		elemType := inferExprType(v.Elements[0], funcTypes, varTypes)
+		for _, el := range v.Elements[1:] {
+			if inferExprType(el, funcTypes, varTypes) != elemType {
+				return "" // or error: mixed types
+			}
+		}
+		return elemType + "[]"
+	case *ast.IndexExpression:
+		leftType := inferExprType(v.Left, funcTypes, varTypes)
+		if len(leftType) > 2 && leftType[len(leftType)-2:] == "[]" {
+			return leftType[:len(leftType)-2]
+		}
+		return ""
 	default:
 		return ""
 	}
@@ -123,19 +143,50 @@ func checkWithReturnType(
 				}
 			}
 		case *ast.AssignmentStatement:
-			expectedType, ok := varTypes[stmt.Name]
-			if !ok {
-				errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
+			if stmt.Left != nil {
+				// Index assignment: xs[0] >> v
+				if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
+					arrType := inferExprType(idxExpr.Left, funcTypes, varTypes)
+					idxType := inferExprType(idxExpr.Index, funcTypes, varTypes)
+					if len(arrType) < 3 || arrType[len(arrType)-2:] != "[]" {
+						errs = append(errs, fmt.Errorf("Type error: cannot index-assign non-array type '%s' on line %d:%d", arrType, stmt.Line, stmt.Col))
+					}
+					if idxType != "int" {
+						errs = append(errs, fmt.Errorf("Type error: array index must be int, got %s on line %d:%d", idxType, stmt.Line, stmt.Col))
+					}
+					elemType := arrType[:len(arrType)-2]
+					valType := inferExprType(stmt.Value, funcTypes, varTypes)
+					if valType != elemType {
+						errs = append(errs, fmt.Errorf("Type error: cannot assign %s to %s element on line %d:%d", valType, elemType, stmt.Line, stmt.Col))
+					}
+				}
 			} else {
-				valType := inferExprType(stmt.Value, funcTypes, varTypes)
-				if valType != expectedType {
-					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
+				// Normal variable assignment
+				expectedType, ok := varTypes[stmt.Name]
+				if !ok {
+					errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
+				} else {
+					valType := inferExprType(stmt.Value, funcTypes, varTypes)
+					if valType != expectedType {
+						errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
+					}
 				}
 			}
 		case *ast.ExpressionStatement:
 			// Check if the expression is a function call
 			if call, ok := stmt.Expr.(*ast.CallExpression); ok {
 				errs = append(errs, checkCallExpr(call, funcDefs, funcTypes, varTypes, stmt.Line, stmt.Col)...)
+			}
+			// Check if the expression is an index expression
+			if idx, ok := stmt.Expr.(*ast.IndexExpression); ok {
+				arrType := inferExprType(idx.Left, funcTypes, varTypes)
+				idxType := inferExprType(idx.Index, funcTypes, varTypes)
+				if len(arrType) < 3 || arrType[len(arrType)-2:] != "[]" {
+					errs = append(errs, fmt.Errorf("Type error: cannot index non-array type '%s' on line %d:%d", arrType, stmt.Line, stmt.Col))
+				}
+				if idxType != "int" {
+					errs = append(errs, fmt.Errorf("Type error: array index must be int, got %s on line %d:%d", idxType, stmt.Line, stmt.Col))
+				}
 			}
 		case *ast.WhileStatement:
 			condType := inferExprType(stmt.Condition, funcTypes, varTypes)
@@ -180,6 +231,18 @@ func checkCallExpr(
 	var errs []error
 	ident, ok := call.Function.(*ast.Identifier)
 	if !ok {
+		return errs
+	}
+	// Allow built-in 'len'
+	if ident.Value == "len" {
+		if len(call.Arguments) != 1 {
+			errs = append(errs, fmt.Errorf("Built-in 'len' expects 1 argument, got %d on line %d:%d", len(call.Arguments), line, col))
+		}
+		// Optionally: check that the argument is an array type
+		argType := inferExprType(call.Arguments[0], funcTypes, varTypes)
+		if len(argType) < 3 || argType[len(argType)-2:] != "[]" {
+			errs = append(errs, fmt.Errorf("Built-in 'len' expects an array argument, got %s on line %d:%d", argType, line, col))
+		}
 		return errs
 	}
 	fn, ok := funcDefs[ident.Value]

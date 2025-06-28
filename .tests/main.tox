@@ -55,6 +55,23 @@
 //     }
 // }
 
-for let i int >> 0; i < 5; i >> i + 1 {
-    log(i)
-}
+// for let i int >> 0; i < 5; i >> i + 1 {
+//     log(i)
+// }
+
+// let xs int[] >> [1, 2, 3, 4]
+// log(xs[0])      // should print 1
+// log(xs[3])      // should print 4
+
+// let names string[] >> ["a", "b", "c"]
+// log(names[2])   // should print "c"
+
+let xs int[] >> [1, 2, 3, 4, 5]
+xs[1] >> 42
+log(xs[1]) // should print 42
+
+let names string[] >> ["a", "b", "c"]
+names[0] >> "z"
+log(names[0]) // should print "z"
+let xs_len int >> len(xs)
+log(xs_len) // should print 5

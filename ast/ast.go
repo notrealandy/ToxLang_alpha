@@ -46,6 +46,7 @@ type IfStatement struct {
 
 type AssignmentStatement struct {
 	Name  string
+	Left  Expression
 	Value Expression
 	Line  int
 	Col   int
@@ -65,6 +66,15 @@ type ForStatement struct {
 	Body      []Statement
 	Line      int
 	Col       int
+}
+
+type ArrayLiteral struct {
+	Elements []Expression
+}
+
+type IndexExpression struct {
+	Left  Expression
+	Index Expression
 }
 
 type Identifier struct {
@@ -137,3 +147,5 @@ func (be *BinaryExpression) expressionNode() {}
 func (nl *NilLiteral) expressionNode()       {}
 func (ce *CallExpression) expressionNode()   {}
 func (ue *UnaryExpression) expressionNode()  {}
+func (al *ArrayLiteral) expressionNode()     {}
+func (ie *IndexExpression) expressionNode()  {}

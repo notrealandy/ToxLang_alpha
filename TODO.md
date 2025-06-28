@@ -28,7 +28,10 @@
 - [x] Support logical operators: `&&`, `||`, `!`.
 
 ## Arrays or Lists
-- [ ] Add support for array types, literals, and indexing.
+- [x] Add support for array types, literals, and indexing.
+- [x] Add Array mutation `xs[0] >> v`
+- [x] Add Array length `len(xs)`
+- [ ] Add Array Slices/Subarrays
 
 ## Error Handling
 - [ ] Improve error messages for invalid syntax, type errors, and runtime errors.

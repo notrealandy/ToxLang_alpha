@@ -84,10 +84,24 @@ func Eval(stmts []ast.Statement, env *Environment) {
 				Eval(stmt.ElseBody, env)
 			}
 		case *ast.AssignmentStatement:
-			val := evalExpr(stmt.Value, env)
-			if !env.SetExisting(stmt.Name, val) {
-				// If variable doesn't exist in any scope, create it in the current scope
-				env.Set(stmt.Name, val)
+			if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
+				// Array mutation: xs[0] >> v
+				arr := evalExpr(idxExpr.Left, env)
+				idx := evalExpr(idxExpr.Index, env)
+				val := evalExpr(stmt.Value, env)
+				arrSlice, ok := arr.([]interface{})
+				idxInt, ok2 := idx.(int64)
+				if ok && ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
+					arrSlice[int(idxInt)] = val
+				} else {
+					// Optionally: print error for out-of-bounds or wrong type
+				}
+			} else {
+				// Normal variable assignment
+				val := evalExpr(stmt.Value, env)
+				if !env.SetExisting(stmt.Name, val) {
+					env.Set(stmt.Name, val)
+				}
 			}
 		case *ast.WhileStatement:
 			for isTruthy(evalExpr(stmt.Condition, env)) {
@@ -178,6 +192,15 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		return nil
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
+			// Built-in: len(xs)
+			if ident.Value == "len" && len(v.Arguments) == 1 {
+				arg := evalExpr(v.Arguments[0], env)
+				if arr, ok := arg.([]interface{}); ok {
+					return int64(len(arr))
+				}
+				return int64(0) // or error
+			}
+			// User-defined function
 			fnObj, ok := env.Get(ident.Value)
 			fnStmt, isFn := fnObj.(*ast.FunctionStatement)
 			if !ok || !isFn {
@@ -209,6 +232,22 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			return !isTruthy(right)
 		}
 		return nil
+	case *ast.ArrayLiteral:
+		arr := []interface{}{}
+		for _, el := range v.Elements {
+			arr = append(arr, evalExpr(el, env))
+		}
+		return arr
+
+	case *ast.IndexExpression:
+		arr := evalExpr(v.Left, env)
+		idx := evalExpr(v.Index, env)
+		arrSlice, ok := arr.([]interface{})
+		idxInt, ok2 := idx.(int64)
+		if ok && ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
+			return arrSlice[int(idxInt)]
+		}
+		return nil // or error
 	}
 	return nil
 }
