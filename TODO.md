@@ -37,7 +37,7 @@
 - [ ] Improve error messages for invalid syntax, type errors, and runtime errors.
 
 ## Standard Library Functions
-- [ ] Add more built-in functions (e.g., `len`, `input`, etc.).
+- [x] Add more built-in functions (e.g., `len`, `input`, etc.).
 
 ## Comments
 - [x] Allow comments in source code (e.g., lines starting with `//`).

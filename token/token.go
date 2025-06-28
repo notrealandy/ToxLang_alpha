@@ -7,6 +7,7 @@ const (
 	FNC = "FNC" // function keyword
 	LOG = "LOG" // native function keyword
 	LEN = "LEN" // native function keyword
+	INPUT = "INPUT" // native function keyword
 	IF = "IF" // if statement
 	ELIF = "ELIF" // else if statement
 	ELSE = "ELSE" // else statement

@@ -48,44 +48,47 @@
 // let sub1 int[] >> xs[2:5]
 // log(sub1)      // [3, 4, 5]
 
-let xs int[] >> [10, 20, 30, 40, 50, 60, 70]
+// let xs int[] >> [10, 20, 30, 40, 50, 60, 70]
 
-// Basic slice: xs[2:5] should be [30, 40, 50]
-let a int[] >> xs[2:5]
-log(a)
+// // Basic slice: xs[2:5] should be [30, 40, 50]
+// let a int[] >> xs[2:5]
+// log(a)
 
-// Slice from start: xs[:3] should be [10, 20, 30]
-let b int[] >> xs[:3]
-log(b)
+// // Slice from start: xs[:3] should be [10, 20, 30]
+// let b int[] >> xs[:3]
+// log(b)
 
-// Slice to end: xs[4:] should be [50, 60, 70]
-let c int[] >> xs[4:]
-log(c)
+// // Slice to end: xs[4:] should be [50, 60, 70]
+// let c int[] >> xs[4:]
+// log(c)
 
-// Full slice: xs[:] should be [10, 20, 30, 40, 50, 60, 70]
-let d int[] >> xs[:]
-log(d)
+// // Full slice: xs[:] should be [10, 20, 30, 40, 50, 60, 70]
+// let d int[] >> xs[:]
+// log(d)
 
-// Single element as slice: xs[3:4] should be [40]
-let e int[] >> xs[3:4]
-log(e)
+// // Single element as slice: xs[3:4] should be [40]
+// let e int[] >> xs[3:4]
+// log(e)
 
-// Empty slice: xs[2:2] should be []
-let f int[] >> xs[2:2]
-log(f)
+// // Empty slice: xs[2:2] should be []
+// let f int[] >> xs[2:2]
+// log(f)
 
-// Out-of-bounds start: xs[10:12] should be []
-let g int[] >> xs[10:12]
-log(g)
+// // Out-of-bounds start: xs[10:12] should be []
+// let g int[] >> xs[10:12]
+// log(g)
 
-// Out-of-bounds end: xs[5:10] should be [60, 70]
-let h int[] >> xs[5:10]
-log(h)
+// // Out-of-bounds end: xs[5:10] should be [60, 70]
+// let h int[] >> xs[5:10]
+// log(h)
 
-// Negative start (should clamp to 0): xs[-2:3] should be [10, 20, 30]
-let i int[] >> xs[-2:3]
-log(i)
+// // Negative start (should clamp to 0): xs[-2:3] should be [10, 20, 30]
+// let i int[] >> xs[-2:3]
+// log(i)
 
-// Start > end (should return empty): xs[5:2] should be []
-let j int[] >> xs[5:2]
-log(j)
+// // Start > end (should return empty): xs[5:2] should be []
+// let j int[] >> xs[5:2]
+// log(j)
+
+let name string >> input("Enter your name >> ")
+log(name)

@@ -268,10 +268,10 @@ func (p *Parser) parsePrimary() ast.Expression {
 		lit := &ast.BoolLiteral{Value: boolVal}
 		p.nextToken()
 		return lit
-	case token.IDENT, token.LEN:
+	case token.IDENT, token.LEN, token.INPUT:
 		var expr ast.Expression = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 		p.nextToken()
-		// Support function calls: foo(), len(), etc.
+		// Support function calls: foo(), len(), input(), etc.
 		for p.curToken.Type == token.LPAREN {
 			p.nextToken()
 			args := []ast.Expression{}

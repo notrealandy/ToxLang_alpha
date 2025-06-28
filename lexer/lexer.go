@@ -153,6 +153,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.FOR
 	case "len":
 		return token.LEN
+	case "input":
+		return token.INPUT
 	default:
 		return token.IDENT
 	}

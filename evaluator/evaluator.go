@@ -1,7 +1,9 @@
 package evaluator
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/notrealandy/tox/ast"
@@ -201,6 +203,18 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 				}
 				return int64(0) // or error
 			}
+			// Built-in: input()
+			if ident.Value == "input" && (len(v.Arguments) == 0 || len(v.Arguments) == 1) {
+				if len(v.Arguments) == 1 {
+					prompt := evalExpr(v.Arguments[0], env)
+					if s, ok := prompt.(string); ok {
+						fmt.Print(s)
+					}
+				}
+				reader := bufio.NewReader(os.Stdin)
+				text, _ := reader.ReadString('\n')
+				return strings.TrimRight(text, "\r\n")
+			}
 			// User-defined function
 			fnObj, ok := env.Get(ident.Value)
 			fnStmt, isFn := fnObj.(*ast.FunctionStatement)
@@ -308,14 +322,14 @@ func isTruthy(val interface{}) bool {
 }
 
 func printValue(val interface{}) {
-    switch v := val.(type) {
-    case []interface{}:
-        elems := make([]string, len(v))
-        for i, e := range v {
-            elems[i] = fmt.Sprint(e)
-        }
-        fmt.Printf("[%s]\n", strings.Join(elems, ", "))
-    default:
-        fmt.Println(v)
-    }
+	switch v := val.(type) {
+	case []interface{}:
+		elems := make([]string, len(v))
+		for i, e := range v {
+			elems[i] = fmt.Sprint(e)
+		}
+		fmt.Printf("[%s]\n", strings.Join(elems, ", "))
+	default:
+		fmt.Println(v)
+	}
 }

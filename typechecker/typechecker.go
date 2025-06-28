@@ -36,6 +36,9 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 				if ident.Value == "len" {
 					return "int"
 				}
+				if ident.Value == "input" {
+					return "string"
+				}
 				if ret, ok := funcTypes[ident.Value]; ok {
 					return ret
 				}
@@ -248,6 +251,19 @@ func checkCallExpr(
 		argType := inferExprType(call.Arguments[0], funcTypes, varTypes)
 		if len(argType) < 3 || argType[len(argType)-2:] != "[]" {
 			errs = append(errs, fmt.Errorf("Built-in 'len' expects an array argument, got %s on line %d:%d", argType, line, col))
+		}
+		return errs
+	}
+	// Allow built-in 'input'
+	if ident.Value == "input" {
+		if len(call.Arguments) > 1 {
+			errs = append(errs, fmt.Errorf("Built-in 'input' expects 0 or 1 argument, got %d on line %d:%d", len(call.Arguments), line, col))
+		}
+		if len(call.Arguments) == 1 {
+			argType := inferExprType(call.Arguments[0], funcTypes, varTypes)
+			if argType != "string" {
+				errs = append(errs, fmt.Errorf("Built-in 'input' expects a string argument, got %s on line %d:%d", argType, line, col))
+			}
 		}
 		return errs
 	}
