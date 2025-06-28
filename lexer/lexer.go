@@ -88,6 +88,10 @@ func (l *Lexer) readNumber() string {
 	return l.input[pos:l.position]
 }
 
+func isIdentChar(ch byte) bool {
+	return isLetter(ch) || isDigit(ch)
+}
+
 // a function to read identifiers like `let x string`, each word is identifier
 // for example:
 // 1. let
@@ -95,10 +99,18 @@ func (l *Lexer) readNumber() string {
 // 3. string
 func (l *Lexer) readIdentifier() string {
 	pos := l.position
-	for isLetter(l.ch) {
+	if !isLetter(l.ch) && l.ch != '_' {
+		return ""
+	}
+	l.readChar()
+	for isIdentChar(l.ch) {
 		l.readChar()
 	}
-
+	// If the next two characters are '[' and ']', include them
+	if l.ch == '[' && l.peekChar() == ']' {
+		l.readChar() // skip '['
+		l.readChar() // skip ']'
+	}
 	return l.input[pos:l.position]
 }
 
@@ -121,7 +133,7 @@ func lookupIdent(ident string) token.TokenType {
 		return token.FNC
 	case "log":
 		return token.LOG
-	case "string", "int", "bool", "void":
+	case "string", "int", "bool", "void", "int[]", "string[]", "bool[]":
 		return token.TYPE
 	case "true", "false":
 		return token.BOOL
@@ -232,6 +244,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.LBRACKET, Literal: "[", Line: l.line, Col: startCol}
 	case ']':
 		tok = token.Token{Type: token.RBRACKET, Literal: "]", Line: l.line, Col: startCol}
+	case ':':
+		tok = token.Token{Type: token.COLON, Literal: ":", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""
@@ -255,12 +269,4 @@ func (l *Lexer) NextToken() token.Token {
 	}
 	l.readChar()
 	return tok
-}
-
-func (l *Lexer) skipComment() {
-	if l.ch == '/' && l.peekChar() == '/' {
-		for l.ch != '\n' && l.ch != 0 {
-			l.readChar()
-		}
-	}
 }

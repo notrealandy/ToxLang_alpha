@@ -1,77 +1,91 @@
+// // Variable declarations and assignments
 // let x int >> 7
 // let y int >> 3 + 2 * (x - 4)
 // let msg string >> "Hello, Tox!"
 // let flag bool >> x > 5 && y < 10
 
-// fnc main () >> void {
-//     log(msg)
-//     if flag {
-//         log("Flag is true!")
-//     } elif x == 7 || y == 7 {
-//         log("One of the values is 7")
-//     } else {
-//         log("No condition met")
-//     }
-//     let result int >> add()
-//     log(result)
-//     modifyX("TOXXXXX")
-//     log(test)
-//     return nil // not needed here, but just to show return
-// }
-
-// fnc add () >> int {
-//     return x + y
-// }
-
-// fnc modifyX (a string) >> void {
-
-//     let test int >> 100
-//     log("start a")
-//     log(a)
-//     log("end a")
-//     log(x)
-//     x >> x + 5
-//     log(x)
-// }
-
-// let x int >> 1
-
-// fnc main () >> void {
-//     let x int >> 7
-//     log(x)
-//     bar()
-// }
-
-// fnc bar () >> void {
-//     x >> 2
-//     log(x)
-// }
-
-// fnc main() >> void {
-//     let x int >> 0
-//     while x < 5 {
-//         log(x)
-//         x >> x + 1
-//     }
-// }
-
-// for let i int >> 0; i < 5; i >> i + 1 {
-//     log(i)
-// }
-
-// let xs int[] >> [1, 2, 3, 4]
-// log(xs[0])      // should print 1
-// log(xs[3])      // should print 4
+// // Arrays and mutation
+// let xs int[] >> [1, 2, 3, 4, 5]
+// xs[1] >> 42
+// log(xs[1]) // should print 42
 
 // let names string[] >> ["a", "b", "c"]
-// log(names[2])   // should print "c"
+// names[0] >> "z"
+// log(names[0]) // should print "z"
+// let xs_len int >> len(xs)
+// log(xs_len) // should print 5
 
-let xs int[] >> [1, 2, 3, 4, 5]
-xs[1] >> 42
-log(xs[1]) // should print 42
+// // Function definition and call
+// fnc add(a int, b int) >> int {
+//     return a + b
+// }
 
-let names string[] >> ["a", "b", "c"]
-names[0] >> "z"
-log(names[0]) // should print "z"
-let xs_len int >> len(xs)
-log(xs_len) // should print 5
+// let sum int >> add(10, 20)
+// log(sum) // should print 30
+
+// // If/elif/else
+// if flag {
+//     log("Flag is true!")
+// } elif x == 7 || y == 7 {
+//     log("One of the values is 7")
+// } else {
+//     log("No condition met")
+// }
+
+// // While loop
+// let i int >> 0
+// while i < 3 {
+//     log(i)
+//     i >> i + 1
+// }
+
+// // For loop
+// for let j int >> 0; j < 3; j >> j + 1 {
+//     log(j)
+// }
+
+// let xs int[] >> [1, 2, 3, 4, 5, 6]
+// let sub1 int[] >> xs[2:5]
+// log(sub1)      // [3, 4, 5]
+
+let xs int[] >> [10, 20, 30, 40, 50, 60, 70]
+
+// Basic slice: xs[2:5] should be [30, 40, 50]
+let a int[] >> xs[2:5]
+log(a)
+
+// Slice from start: xs[:3] should be [10, 20, 30]
+let b int[] >> xs[:3]
+log(b)
+
+// Slice to end: xs[4:] should be [50, 60, 70]
+let c int[] >> xs[4:]
+log(c)
+
+// Full slice: xs[:] should be [10, 20, 30, 40, 50, 60, 70]
+let d int[] >> xs[:]
+log(d)
+
+// Single element as slice: xs[3:4] should be [40]
+let e int[] >> xs[3:4]
+log(e)
+
+// Empty slice: xs[2:2] should be []
+let f int[] >> xs[2:2]
+log(f)
+
+// Out-of-bounds start: xs[10:12] should be []
+let g int[] >> xs[10:12]
+log(g)
+
+// Out-of-bounds end: xs[5:10] should be [60, 70]
+let h int[] >> xs[5:10]
+log(h)
+
+// Negative start (should clamp to 0): xs[-2:3] should be [10, 20, 30]
+let i int[] >> xs[-2:3]
+log(i)
+
+// Start > end (should return empty): xs[5:2] should be []
+let j int[] >> xs[5:2]
+log(j)

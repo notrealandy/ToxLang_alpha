@@ -8,6 +8,7 @@ import (
 	"github.com/notrealandy/tox/evaluator"
 	"github.com/notrealandy/tox/lexer"
 	"github.com/notrealandy/tox/parser"
+	// "github.com/notrealandy/tox/token"
 	"github.com/notrealandy/tox/typechecker"
 )
 
@@ -38,6 +39,16 @@ func main() {
 	p := parser.New(l)
 	program := p.ParseProgram()
 	fmt.Printf("%#v\n", program)
+
+	// Debug: print all tokens
+	// l2 := lexer.New(string(content))
+	// for {
+	// 	tok := l2.NextToken()
+	// 	fmt.Printf("%#v\n", tok)
+	// 	if tok.Type == token.EOF {
+	// 		break
+	// 	}
+	// }
 
 	// Print parser errors
 	if len(p.Errors) > 0 {

@@ -31,7 +31,7 @@
 - [x] Add support for array types, literals, and indexing.
 - [x] Add Array mutation `xs[0] >> v`
 - [x] Add Array length `len(xs)`
-- [ ] Add Array Slices/Subarrays
+- [x] Add Array Slices/Subarrays
 
 ## Error Handling
 - [ ] Improve error messages for invalid syntax, type errors, and runtime errors.
@@ -41,3 +41,19 @@
 
 ## Comments
 - [x] Allow comments in source code (e.g., lines starting with `//`).
+
+## Break and Continue
+- [ ] break
+- [ ] continue
+
+## Packages and imports
+- [ ] Packages
+- [ ] Imports
+
+## Structs
+- [ ] Structs
+
+## Lambadas/maps
+- [ ] Lambadas (anonymous functions)
+- [ ] maps
+

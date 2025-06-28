@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/notrealandy/tox/ast"
 	"github.com/notrealandy/tox/token"
@@ -62,7 +63,7 @@ func Eval(stmts []ast.Statement, env *Environment) {
 			env.Set(stmt.Name, stmt)
 		case *ast.LogFunction:
 			val := evalExpr(stmt.Value, env)
-			fmt.Println(val)
+			printValue(val)
 		case *ast.ExpressionStatement:
 			evalExpr(stmt.Expr, env)
 		case *ast.IfStatement:
@@ -248,6 +249,35 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			return arrSlice[int(idxInt)]
 		}
 		return nil // or error
+	case *ast.SliceExpression:
+		arr := evalExpr(v.Left, env)
+		arrSlice, ok := arr.([]interface{})
+		if !ok {
+			return nil // or error
+		}
+		var start, end int64
+		if v.Start != nil {
+			if s, ok := evalExpr(v.Start, env).(int64); ok {
+				start = s
+			}
+		}
+		if v.End != nil {
+			if e, ok := evalExpr(v.End, env).(int64); ok {
+				end = e
+			}
+		} else {
+			end = int64(len(arrSlice))
+		}
+		if start < 0 {
+			start = 0
+		}
+		if end > int64(len(arrSlice)) {
+			end = int64(len(arrSlice))
+		}
+		if start > end {
+			start = end
+		}
+		return arrSlice[start:end]
 	}
 	return nil
 }
@@ -275,4 +305,17 @@ func isTruthy(val interface{}) bool {
 	default:
 		return v != nil
 	}
+}
+
+func printValue(val interface{}) {
+    switch v := val.(type) {
+    case []interface{}:
+        elems := make([]string, len(v))
+        for i, e := range v {
+            elems[i] = fmt.Sprint(e)
+        }
+        fmt.Printf("[%s]\n", strings.Join(elems, ", "))
+    default:
+        fmt.Println(v)
+    }
 }

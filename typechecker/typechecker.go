@@ -68,6 +68,12 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 			return leftType[:len(leftType)-2]
 		}
 		return ""
+	case *ast.SliceExpression:
+		leftType := inferExprType(v.Left, funcTypes, varTypes)
+		if len(leftType) > 2 && leftType[len(leftType)-2:] == "[]" {
+			return leftType
+		}
+		return ""
 	default:
 		return ""
 	}

@@ -91,11 +91,6 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	typ := p.curToken.Literal
 	p.nextToken()
-	if p.curToken.Type == token.LBRACKET && p.peekToken.Type == token.RBRACKET {
-		typ += "[]"
-		p.nextToken() // skip [
-		p.nextToken() // skip ]
-	}
 
 	if p.curToken.Type != token.ASSIGN_OP {
 		p.Errors = append(p.Errors, fmt.Sprintf("[PARSE LET STATEMENT] expected assignment operator '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
@@ -297,13 +292,30 @@ func (p *Parser) parsePrimary() ast.Expression {
 		// Support arr[0] and chaining
 		for p.curToken.Type == token.LBRACKET {
 			p.nextToken()
-			index := p.parseExpression()
-			if p.curToken.Type != token.RBRACKET {
-				p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after index on line %d:%d", p.curToken.Line, p.curToken.Col))
-				return nil
+			var start, end ast.Expression
+			// xs[1:4], xs[:4], xs[1:], xs[:]
+			if p.curToken.Type != token.COLON && p.curToken.Type != token.RBRACKET {
+				start = p.parseExpression()
 			}
-			p.nextToken()
-			expr = &ast.IndexExpression{Left: expr, Index: index}
+			if p.curToken.Type == token.COLON {
+				p.nextToken()
+				if p.curToken.Type != token.RBRACKET {
+					end = p.parseExpression()
+				}
+				if p.curToken.Type != token.RBRACKET {
+					p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after slice on line %d:%d", p.curToken.Line, p.curToken.Col))
+					return nil
+				}
+				p.nextToken()
+				expr = &ast.SliceExpression{Left: expr, Start: start, End: end}
+			} else {
+				if p.curToken.Type != token.RBRACKET {
+					p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after index on line %d:%d", p.curToken.Line, p.curToken.Col))
+					return nil
+				}
+				p.nextToken()
+				expr = &ast.IndexExpression{Left: expr, Index: start}
+			}
 		}
 		return expr
 	case token.LPAREN:

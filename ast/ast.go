@@ -95,6 +95,12 @@ type ExpressionStatement struct {
 	Col  int
 }
 
+type SliceExpression struct {
+	Left  Expression
+	Start Expression // can be nil
+	End   Expression // can be nil
+}
+
 type UnaryExpression struct {
 	Operator token.TokenType
 	Right    Expression
@@ -149,3 +155,4 @@ func (ce *CallExpression) expressionNode()   {}
 func (ue *UnaryExpression) expressionNode()  {}
 func (al *ArrayLiteral) expressionNode()     {}
 func (ie *IndexExpression) expressionNode()  {}
+func (se *SliceExpression) expressionNode()  {}
