@@ -1,8 +1,11 @@
 package dev.notrealandy.defaultproject
 
 import dev.notrealandy.defaultproject.App
+import dev.notrealandy.defaultproject.Test
 
 fnc main () >> void {
 	// Runs the Tox Application
 	App.run()
+	App.Window()
+	// Test.run()
 }

@@ -47,8 +47,8 @@
 - [ ] continue
 
 ## Packages and imports
-- [ ] Packages
-- [ ] Imports
+- [x] Packages
+- [x] Imports
 
 ## Structs
 - [ ] Structs

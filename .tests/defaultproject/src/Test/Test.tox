@@ -1,0 +1,9 @@
+package dev.notrealandy.defaultproject.Test
+
+fnc Test () >> void {
+	log("Test function executed successfully.")
+}
+
+fnc run () >> void {
+	Test()
+}

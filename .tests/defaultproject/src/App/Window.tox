@@ -1,0 +1,5 @@
+package dev.notrealandy.defaultproject.App
+
+fnc Window () >> void {
+	log("Welcome to the Tox Window!")
+}

@@ -1,10 +1,12 @@
 package dev.notrealandy.defaultproject.App
 
+import dev.notrealandy.defaultproject.Test
+
 fnc App () >> void {
 	log("Welcome to the Tox Application!")
 }
 
 fnc run () >> void {
-	log("Running the Tox Application...")
+	Test.run()
 	App()
 }
