@@ -68,6 +68,14 @@ type ForStatement struct {
 	Col       int
 }
 
+type PackageStatement struct {
+    Name string
+}
+
+type ImportStatement struct {
+    Path string
+}
+
 type ArrayLiteral struct {
 	Elements []Expression
 }

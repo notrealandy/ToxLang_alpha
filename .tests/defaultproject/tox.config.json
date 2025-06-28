@@ -1,0 +1,24 @@
+{
+    "project": {
+        "name": "defaultproject",
+        "packagePrefix": "dev.notrealandy.defaultproject",
+        "version": "0.1.0",
+        "description": "A default project for Tox language tests",
+        "mainFile": "main.tox",
+        "sourceDirs": ["src"],
+        "libsDir": ".libs"
+    },
+
+    "libs": {
+        "math": {
+            "version": "1.0.0",
+            "description": "Math library for Tox Language",
+            "source": "https://github.com/notrealandy/tox_math"
+        },
+        "json": {
+            "version": "1.0.0",
+            "description": "JSON library for Tox Language",
+            "source": "https://github.com/notrealandy/tox_json"
+        }
+    }
+}

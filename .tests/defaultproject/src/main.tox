@@ -1,0 +1,8 @@
+package dev.notrealandy.defaultproject
+
+import dev.notrealandy.defaultproject.App
+
+fnc main () >> void {
+	// Runs the Tox Application
+	App.run()
+}

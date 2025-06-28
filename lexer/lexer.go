@@ -155,6 +155,10 @@ func lookupIdent(ident string) token.TokenType {
 		return token.LEN
 	case "input":
 		return token.INPUT
+	case "package":
+		return token.PACKAGE
+	case "import":
+		return token.IMPORT
 	default:
 		return token.IDENT
 	}
@@ -248,6 +252,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.RBRACKET, Literal: "]", Line: l.line, Col: startCol}
 	case ':':
 		tok = token.Token{Type: token.COLON, Literal: ":", Line: l.line, Col: startCol}
+	case '.':
+		tok = token.Token{Type: token.DOT, Literal: ".", Line: l.line, Col: startCol}
 	case 0:
 		tok.Type = token.EOF
 		tok.Literal = ""

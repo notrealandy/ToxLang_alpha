@@ -1,0 +1,10 @@
+package dev.notrealandy.defaultproject.App
+
+fnc App () >> void {
+	log("Welcome to the Tox Application!")
+}
+
+fnc run () >> void {
+	log("Running the Tox Application...")
+	App()
+}

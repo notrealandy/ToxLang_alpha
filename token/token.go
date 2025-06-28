@@ -27,6 +27,9 @@ const (
 	INT = "INT" // int literal, e.g. 3
 	BOOL = "BOOL" // bool literal, e.g. true/false
 	FNCVOID = "FNCVOID" // function return type void
+	PACKAGE = "PACKAGE" // package keyword
+	IMPORT = "IMPORT" // import keyword
+	DOT = "DOT" // .
 	PLUS = "+"
 	MINUS = "-"
 	ASTERISK = "*"

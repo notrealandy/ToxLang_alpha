@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/notrealandy/tox/ast"
 	"github.com/notrealandy/tox/lexer"
@@ -56,6 +57,10 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parseWhileStatement()
 		} else if p.curToken.Type == token.FOR {
 			stmt = p.parseForStatement()
+		} else if p.curToken.Type == token.PACKAGE {
+			stmt = p.parsePackageStatement()
+		} else if p.curToken.Type == token.IMPORT {
+			stmt = p.parseImportStatement()
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -271,6 +276,23 @@ func (p *Parser) parsePrimary() ast.Expression {
 	case token.IDENT, token.LEN, token.INPUT:
 		var expr ast.Expression = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 		p.nextToken()
+		// Handle dot notation: App.run or App.foo.bar
+		for p.curToken.Type == token.DOT {
+			p.nextToken()
+			if p.curToken.Type != token.IDENT {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected identifier after '.' on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			// Combine previous and current identifier
+			if id, ok := expr.(*ast.Identifier); ok {
+				expr = &ast.Identifier{
+					Value: id.Value + "." + p.curToken.Literal,
+					Line:  id.Line,
+					Col:   id.Col,
+				}
+			}
+			p.nextToken()
+		}
 		// Support function calls: foo(), len(), input(), etc.
 		for p.curToken.Type == token.LPAREN {
 			p.nextToken()
@@ -612,4 +634,62 @@ func (p *Parser) parseForStatement() *ast.ForStatement {
 	}
 	fs.Body = p.parseBlock()
 	return fs
+}
+
+func (p *Parser) parsePackageStatement() *ast.PackageStatement {
+	p.nextToken()
+
+	if p.curToken.Type != token.IDENT {
+		msg := "expected package name after 'package'"
+		p.Errors = append(p.Errors, msg)
+		return nil
+	}
+
+	parts := []string{p.curToken.Literal}
+
+	// Keep parsing dot-separated identifiers
+	for p.peekToken.Type == token.DOT {
+		p.nextToken() // consume '.'
+		p.nextToken() // move to next IDENT
+		if p.curToken.Type != token.IDENT {
+			msg := "expected identifier after '.' in package path"
+			p.Errors = append(p.Errors, msg)
+			return nil
+		}
+		parts = append(parts, p.curToken.Literal)
+	}
+	p.nextToken()
+
+	pkg := &ast.PackageStatement{Name: strings.Join(parts, ".")}
+
+	return pkg
+}
+
+func (p *Parser) parseImportStatement() *ast.ImportStatement {
+	p.nextToken()
+
+	if p.curToken.Type != token.IDENT {
+		msg := "expected import path after 'import'"
+		p.Errors = append(p.Errors, msg)
+		return nil
+	}
+
+	parts := []string{p.curToken.Literal}
+
+	// Keep parsing dot-separated identifiers
+	for p.peekToken.Type == token.DOT {
+		p.nextToken() // consume '.'
+		p.nextToken() // move to next IDENT
+		if p.curToken.Type != token.IDENT {
+			msg := "expected identifier after '.' in import path"
+			p.Errors = append(p.Errors, msg)
+			return nil
+		}
+		parts = append(parts, p.curToken.Literal)
+	}
+	p.nextToken()
+
+	ipt := &ast.ImportStatement{Path: strings.Join(parts, ".")}
+
+	return ipt
 }
