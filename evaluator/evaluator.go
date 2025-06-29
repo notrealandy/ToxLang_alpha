@@ -185,9 +185,18 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		r, rok := right.(int64)
 		switch v.Operator {
 		case token.PLUS:
-			if lok && rok {
-				return l + r
+			// Support int + int and string + string
+			switch lval := left.(type) {
+			case int64:
+				if rval, ok := right.(int64); ok {
+					return lval + rval
+				}
+			case string:
+				if rval, ok := right.(string); ok {
+					return lval + rval
+				}
 			}
+			return nil
 		case token.MINUS:
 			if lok && rok {
 				return l - r

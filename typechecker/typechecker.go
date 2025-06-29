@@ -42,11 +42,24 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 		}
 		return ""
 	case *ast.BinaryExpression:
+		leftType := inferExprType(v.Left, funcTypes, varTypes, structDefs)
+		rightType := inferExprType(v.Right, funcTypes, varTypes, structDefs)
 		switch v.Operator {
 		case token.EQ, token.NEQ, token.LT, token.LTE, token.GT, token.GTE, token.AND, token.OR:
 			return "bool"
-		case token.PLUS, token.MINUS, token.ASTERISK, token.SLASH, token.MODULUS:
-			return "int"
+		case token.PLUS:
+			if leftType == "string" && rightType == "string" {
+				return "string"
+			}
+			if leftType == "int" && rightType == "int" {
+				return "int"
+			}
+			return ""
+		case token.MINUS, token.ASTERISK, token.SLASH, token.MODULUS:
+			if leftType == "int" && rightType == "int" {
+				return "int"
+			}
+			return ""
 		default:
 			return ""
 		}

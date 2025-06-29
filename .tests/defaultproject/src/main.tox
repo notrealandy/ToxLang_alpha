@@ -31,6 +31,6 @@ fnc main () >> void {
 	log(u.greet())
 }
 
-fnc User.greet () >> int {
-	return 1
+fnc User.greet () >> string {
+	return "Hello, " + this.name
 }
