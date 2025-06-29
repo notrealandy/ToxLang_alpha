@@ -197,9 +197,9 @@ func main() {
 	}
 
 	// Load config
-	config, err := loadConfig(filepath.Join(filepath.Dir(path), "../tox.config.json"))
+	config, err := loadConfig(filepath.Join(filepath.Dir(path), "../toxconfig.json"))
 	if err != nil {
-		fmt.Println("Error loading tox.config.json:", err)
+		fmt.Println("Error loading toxconfig.json:", err)
 		os.Exit(1)
 	}
 
