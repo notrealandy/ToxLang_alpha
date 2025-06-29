@@ -51,7 +51,10 @@
 - [x] Imports
 
 ## Structs
-- [ ] Structs
+- [x] Structs
+- [ ] Support for field assignments (updating a field in an already-created struct)
+- [ ] Methods on structs (if desired for your language)
+- [ ] More detailed validation (e.g. checking that all fields are provided or no extra fields exist)
 
 ## Lambadas/maps
 - [ ] Lambadas (anonymous functions)
