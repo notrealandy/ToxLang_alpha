@@ -4,6 +4,6 @@ fnc Test () >> void {
 	log("Test function executed successfully.")
 }
 
-fnc run () >> void {
+pub fnc run () >> void {
 	Test()
 }

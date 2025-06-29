@@ -36,10 +36,19 @@ func (p *Parser) ParseProgram() []ast.Statement {
 	var statements []ast.Statement
 
 	for p.curToken.Type != token.EOF {
-		if p.curToken.Type == token.RBRACE {
-			p.nextToken()
-			continue
-		}
+        // Check for optional visibility modifier
+        if p.curToken.Type == token.PUB {
+            vis := strings.ToLower(p.curToken.Literal)
+            p.nextToken() // consume the modifier
+            if p.curToken.Type != token.FNC {
+                p.Errors = append(p.Errors, fmt.Sprintf("expected function declaration after visibility modifier on line %d:%d", p.curToken.Line, p.curToken.Col))
+                continue
+            }
+            fn := p.parseFunctionStatement()
+            fn.Visibility = vis
+            statements = append(statements, fn)
+            continue
+        }
 		var stmt ast.Statement
 		if p.curToken.Type == token.LET {
 			stmt = p.parseLetStatement()

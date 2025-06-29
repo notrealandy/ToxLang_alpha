@@ -3,6 +3,7 @@ package token
 type TokenType string
 
 const (
+	PUB = "PUB" // public keyword
 	LET = "LET" // reserved keyword
 	FNC = "FNC" // function keyword
 	LOG = "LOG" // native function keyword

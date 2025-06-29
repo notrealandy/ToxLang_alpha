@@ -1,5 +1,5 @@
 package dev.notrealandy.defaultproject.App
 
-fnc Window () >> void {
+pub fnc Window () >> void {
 	log("Welcome to the Tox Window!")
 }

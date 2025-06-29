@@ -6,7 +6,7 @@ fnc App () >> void {
 	log("Welcome to the Tox Application!")
 }
 
-fnc run () >> void {
+pub fnc run () >> void {
 	Test.run()
 	App()
 }

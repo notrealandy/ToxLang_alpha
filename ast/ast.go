@@ -18,6 +18,7 @@ type FunctionStatement struct {
 	ParamTypes []string
 	Body       []Statement
 	ReturnType string
+	Visibility string
 	Line       int
 	Col        int
 }
