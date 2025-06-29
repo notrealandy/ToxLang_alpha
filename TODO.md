@@ -53,8 +53,8 @@
 ## Structs
 - [x] Structs
 - [x] Support for field assignments (updating a field in an already-created struct)
-- [ ] Methods on structs
-- [ ] More detailed validation (e.g. checking that all fields are provided or no extra fields exist)
+- [x] Methods on structs
+- [x] More detailed validation (e.g. checking that all fields are provided or no extra fields exist)
 
 ## Lambadas/maps
 - [ ] Lambadas (anonymous functions)

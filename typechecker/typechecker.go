@@ -185,6 +185,30 @@ func checkWithReturnType(
 			if valType != stmt.Type {
 				errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Type, stmt.Name))
 			}
+			// --- Struct literal field validation ---
+			if structLit, ok := stmt.Value.(*ast.StructLiteral); ok {
+				if def, ok := structDefs[structLit.StructName]; ok {
+					// Check for missing fields
+					for _, field := range def.Fields {
+						if _, exists := structLit.Fields[field.Name]; !exists {
+							errs = append(errs, fmt.Errorf("Missing field '%s' in struct literal for '%s' on line %d:%d", field.Name, structLit.StructName, stmt.Line, stmt.Col))
+						}
+					}
+					// Check for extra fields
+					for fieldName := range structLit.Fields {
+						found := false
+						for _, field := range def.Fields {
+							if field.Name == fieldName {
+								found = true
+								break
+							}
+						}
+						if !found {
+							errs = append(errs, fmt.Errorf("Unknown field '%s' in struct literal for '%s' on line %d:%d", fieldName, structLit.StructName, stmt.Line, stmt.Col))
+						}
+					}
+				}
+			}
 		case *ast.ExpressionStatement:
 			// If the expression is a CallExpression, typecheck its arguments via checkCallExpr.
 			if call, ok := stmt.Expr.(*ast.CallExpression); ok {
