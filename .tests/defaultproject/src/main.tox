@@ -7,5 +7,6 @@ fnc main () >> void {
 	// Runs the Tox Application
 	App.run()
 	App.Window()
+	log(Test.name)
 	// Test.run()
 }

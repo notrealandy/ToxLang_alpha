@@ -115,13 +115,24 @@ func checkWithReturnType(
 		switch stmt := s.(type) {
 		case *ast.LetStatement:
 			valType := inferExprType(stmt.Value, funcTypes, varTypes)
+			// If type inference fails, then an identifier may be non‑public or undeclared.
+			if valType == "" {
+				errs = append(errs, fmt.Errorf("Error on line %d:%d: initialization of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
+			}
 			varTypes[stmt.Name] = stmt.Type
 			if valType != stmt.Type {
 				errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Type, stmt.Name))
 			}
-			// If it's a function call, check argument types
-			if call, ok := stmt.Value.(*ast.CallExpression); ok {
-				errs = append(errs, checkCallExpr(call, funcDefs, funcTypes, varTypes, stmt.Line, stmt.Col)...)
+		case *ast.ExpressionStatement:
+			exprType := inferExprType(stmt.Expr, funcTypes, varTypes)
+			if exprType == "" {
+				errs = append(errs, fmt.Errorf("Error on line %d:%d: expression uses an undeclared or non‑public variable", stmt.Line, stmt.Col))
+			}
+		// NEW: Check for log statements
+		case *ast.LogFunction:
+			exprType := inferExprType(stmt.Value, funcTypes, varTypes)
+			if exprType == "" {
+				errs = append(errs, fmt.Errorf("Error on line %d:%d: log expression uses an undeclared or non‑public variable", stmt.Line, stmt.Col))
 			}
 		case *ast.FunctionStatement:
 			// New scope for function body
@@ -129,7 +140,6 @@ func checkWithReturnType(
 			for k, v := range varTypes {
 				funcVarTypes[k] = v
 			}
-			// Add parameters to local scope
 			for i, param := range stmt.Params {
 				funcVarTypes[param] = stmt.ParamTypes[i]
 			}
@@ -152,49 +162,15 @@ func checkWithReturnType(
 				}
 			}
 		case *ast.AssignmentStatement:
-			if stmt.Left != nil {
-				// Index assignment: xs[0] >> v
-				if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
-					arrType := inferExprType(idxExpr.Left, funcTypes, varTypes)
-					idxType := inferExprType(idxExpr.Index, funcTypes, varTypes)
-					if len(arrType) < 3 || arrType[len(arrType)-2:] != "[]" {
-						errs = append(errs, fmt.Errorf("Type error: cannot index-assign non-array type '%s' on line %d:%d", arrType, stmt.Line, stmt.Col))
-					}
-					if idxType != "int" {
-						errs = append(errs, fmt.Errorf("Type error: array index must be int, got %s on line %d:%d", idxType, stmt.Line, stmt.Col))
-					}
-					elemType := arrType[:len(arrType)-2]
-					valType := inferExprType(stmt.Value, funcTypes, varTypes)
-					if valType != elemType {
-						errs = append(errs, fmt.Errorf("Type error: cannot assign %s to %s element on line %d:%d", valType, elemType, stmt.Line, stmt.Col))
-					}
-				}
+			expectedType, ok := varTypes[stmt.Name]
+			if !ok {
+				errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
 			} else {
-				// Normal variable assignment
-				expectedType, ok := varTypes[stmt.Name]
-				if !ok {
-					errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
-				} else {
-					valType := inferExprType(stmt.Value, funcTypes, varTypes)
-					if valType != expectedType {
-						errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
-					}
-				}
-			}
-		case *ast.ExpressionStatement:
-			// Check if the expression is a function call
-			if call, ok := stmt.Expr.(*ast.CallExpression); ok {
-				errs = append(errs, checkCallExpr(call, funcDefs, funcTypes, varTypes, stmt.Line, stmt.Col)...)
-			}
-			// Check if the expression is an index expression
-			if idx, ok := stmt.Expr.(*ast.IndexExpression); ok {
-				arrType := inferExprType(idx.Left, funcTypes, varTypes)
-				idxType := inferExprType(idx.Index, funcTypes, varTypes)
-				if len(arrType) < 3 || arrType[len(arrType)-2:] != "[]" {
-					errs = append(errs, fmt.Errorf("Type error: cannot index non-array type '%s' on line %d:%d", arrType, stmt.Line, stmt.Col))
-				}
-				if idxType != "int" {
-					errs = append(errs, fmt.Errorf("Type error: array index must be int, got %s on line %d:%d", idxType, stmt.Line, stmt.Col))
+				valType := inferExprType(stmt.Value, funcTypes, varTypes)
+				if valType == "" {
+					errs = append(errs, fmt.Errorf("Error on line %d:%d: assignment of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
+				} else if valType != expectedType {
+					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
 				}
 			}
 		case *ast.WhileStatement:

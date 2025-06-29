@@ -8,6 +8,7 @@ type LetStatement struct {
 	Name  string     // variable name
 	Type  string     // type as declared
 	Value Expression // the value assigned
+	Visibility string    // "pub" (public) or "" (private by default)
 	Line  int
 	Col   int
 }
@@ -18,7 +19,7 @@ type FunctionStatement struct {
 	ParamTypes []string
 	Body       []Statement
 	ReturnType string
-	Visibility string
+	Visibility string // "pub" (public) or "" (private by default)
 	Line       int
 	Col        int
 }

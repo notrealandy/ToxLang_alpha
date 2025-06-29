@@ -115,15 +115,23 @@ func loadAndParseFile(path string, loaded map[string]bool, config map[string]int
 					}
 					// Within the import loop in loadAndParseFile, replace your existing prefixing code with:
 					for _, istmt := range importedStmts {
-						if fn, ok := istmt.(*ast.FunctionStatement); ok {
-							if fn.Visibility == "pub" {
-								fnGlobal := *fn
-								fnGlobal.Name = moduleName + "." + fn.Name
+						switch stmt := istmt.(type) {
+						case *ast.FunctionStatement:
+							if stmt.Visibility == "pub" {
+								fnGlobal := *stmt
+								fnGlobal.Name = moduleName + "." + stmt.Name
 								*allStmts = append(*allStmts, &fnGlobal)
 							}
-							*allStmts = append(*allStmts, fn)
-						} else {
-							*allStmts = append(*allStmts, istmt)
+							*allStmts = append(*allStmts, stmt)
+						case *ast.LetStatement:
+							if stmt.Visibility == "pub" {
+								letGlobal := *stmt
+								letGlobal.Name = moduleName + "." + stmt.Name
+								*allStmts = append(*allStmts, &letGlobal)
+							}
+							*allStmts = append(*allStmts, stmt)
+						default:
+							*allStmts = append(*allStmts, stmt)
 						}
 					}
 					found = true

@@ -36,19 +36,26 @@ func (p *Parser) ParseProgram() []ast.Statement {
 	var statements []ast.Statement
 
 	for p.curToken.Type != token.EOF {
-        // Check for optional visibility modifier
-        if p.curToken.Type == token.PUB {
-            vis := strings.ToLower(p.curToken.Literal)
-            p.nextToken() // consume the modifier
-            if p.curToken.Type != token.FNC {
-                p.Errors = append(p.Errors, fmt.Sprintf("expected function declaration after visibility modifier on line %d:%d", p.curToken.Line, p.curToken.Col))
-                continue
-            }
-            fn := p.parseFunctionStatement()
-            fn.Visibility = vis
-            statements = append(statements, fn)
-            continue
-        }
+		// Check for optional pub modifier for functions or let statements
+		if p.curToken.Type == token.PUB {
+			vis := "pub"
+			p.nextToken() // consume 'pub'
+			if p.curToken.Type == token.FNC {
+				fn := p.parseFunctionStatement()
+				fn.Visibility = vis
+				statements = append(statements, fn)
+				continue
+			} else if p.curToken.Type == token.LET {
+				letStmt := p.parseLetStatement()
+				letStmt.Visibility = vis
+				statements = append(statements, letStmt)
+				continue
+			} else {
+				p.Errors = append(p.Errors, fmt.Sprintf("unexpected token '%s' after pub on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
+				p.nextToken()
+				continue
+			}
+		}
 		var stmt ast.Statement
 		if p.curToken.Type == token.LET {
 			stmt = p.parseLetStatement()

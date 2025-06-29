@@ -1,5 +1,7 @@
 package dev.notrealandy.defaultproject.Test
 
+pub let name string >> "NTX"
+
 fnc Test () >> void {
 	log("Test function executed successfully.")
 }

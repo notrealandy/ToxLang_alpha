@@ -137,7 +137,11 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.BoolLiteral:
 		return v.Value
 	case *ast.Identifier:
-		val, _ := env.Get(v.Value)
+		val, ok := env.Get(v.Value)
+		if !ok || val == nil {
+			// Return an error string rather than nil
+			return fmt.Sprintf("Error: variable '%s' is not public or does not exist", v.Value)
+		}
 		return val
 	case *ast.BinaryExpression:
 		left := evalExpr(v.Left, env)
