@@ -524,49 +524,62 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 }
 
 func (p *Parser) parseBlock() []ast.Statement {
-	stmts := []ast.Statement{}
-	p.nextToken() // move past '{'
-	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
-		var stmt ast.Statement
-		switch p.curToken.Type {
-		case token.LET:
-			stmt = p.parseLetStatement()
-		case token.FNC:
-			stmt = p.parseFunctionStatement()
-		case token.LOG:
-			stmt = p.parseLogFunctionStatement()
-		case token.RETURN:
-			stmt = p.parseReturnStatement()
-		case token.IF:
-			stmt = p.parseIfStatement()
-		case token.WHILE:
-			stmt = p.parseWhileStatement()
-		case token.FOR:
-			stmt = p.parseForStatement()
-		default:
-			if p.curToken.Type == token.IDENT && p.peekToken.Type == token.ASSIGN_OP {
-				stmt = p.parseAssignmentStatement()
-			} else {
-				expr := p.parseExpression()
-				if expr != nil {
-					stmt = &ast.ExpressionStatement{
-						Expr: expr,
-						Line: p.curToken.Line,
-						Col:  p.curToken.Col,
-					}
-				} else {
-					p.Errors = append(p.Errors, fmt.Sprintf("[PARSE BLOCK] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
-					p.nextToken()
-					continue
-				}
-			}
-		}
-		if stmt != nil {
-			stmts = append(stmts, stmt)
-		}
-	}
-	p.nextToken() // skip '}'
-	return stmts
+    stmts := []ast.Statement{}
+    p.nextToken() // move past '{'
+    for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+        var stmt ast.Statement
+        switch p.curToken.Type {
+        case token.LET:
+            stmt = p.parseLetStatement()
+        case token.FNC:
+            stmt = p.parseFunctionStatement()
+        case token.LOG:
+            stmt = p.parseLogFunctionStatement()
+        case token.RETURN:
+            stmt = p.parseReturnStatement()
+        case token.IF:
+            stmt = p.parseIfStatement()
+        case token.WHILE:
+            stmt = p.parseWhileStatement()
+        case token.FOR:
+            stmt = p.parseForStatement()
+        default:
+            // Instead of checking for IDENT with peekToken,
+            // if the current token is IDENT do:
+            if p.curToken.Type == token.IDENT {
+                expr := p.parsePrimary()
+                // If the next token is the assignment operator, upgrade.
+                if p.curToken.Type == token.ASSIGN_OP {
+                    stmt = p.parseAssignmentStatementFrom(expr)
+                } else {
+                    var line, col int
+                    if ident, ok := expr.(*ast.Identifier); ok {
+                        line, col = ident.Line, ident.Col
+                    } else {
+                        line, col = p.curToken.Line, p.curToken.Col
+                    }
+                    stmt = &ast.ExpressionStatement{
+                        Expr: expr,
+                        Line: line,
+                        Col:  col,
+                    }
+                }
+            } else {
+                // Otherwise, try to parse an expression normally.
+                expr := p.parseExpression()
+                stmt = &ast.ExpressionStatement{
+                    Expr: expr,
+                    Line: p.curToken.Line,
+                    Col:  p.curToken.Col,
+                }
+            }
+        }
+        if stmt != nil {
+            stmts = append(stmts, stmt)
+        }
+    }
+    p.nextToken() // skip '}'
+    return stmts
 }
 
 func (p *Parser) parseLogical() ast.Expression {
@@ -860,5 +873,29 @@ func (p *Parser) parseStructLiteral(expectedType string, line, col int) ast.Expr
         Fields:     fields,
         Line:       line,
         Col:        col,
+    }
+}
+func (p *Parser) parseAssignmentStatementFrom(left ast.Expression) *ast.AssignmentStatement {
+    line := left.(*ast.Identifier).Line
+    col := left.(*ast.Identifier).Col
+
+    // Expect the assignment operator (>>)
+    if p.curToken.Type != token.ASSIGN_OP {
+        p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after assignment target on line %d:%d", line, col))
+        return nil
+    }
+    p.nextToken() // skip '>>'
+    value := p.parseExpression()
+
+    var name string
+    if ident, ok := left.(*ast.Identifier); ok {
+        name = ident.Value
+    }
+    return &ast.AssignmentStatement{
+        Name:  name,
+        Left:  left,
+        Value: value,
+        Line:  line,
+        Col:   col,
     }
 }

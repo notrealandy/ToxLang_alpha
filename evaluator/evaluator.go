@@ -87,7 +87,25 @@ func Eval(stmts []ast.Statement, env *Environment) {
 				Eval(stmt.ElseBody, env)
 			}
 		case *ast.AssignmentStatement:
-			if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
+			// Field assignment: e.g., u.name >> "NewValue"
+			if ident, ok := stmt.Left.(*ast.Identifier); ok && strings.Contains(ident.Value, ".") {
+				parts := strings.SplitN(ident.Value, ".", 2)
+				baseName := parts[0]
+				fieldName := parts[1]
+				base, ok := env.Get(baseName)
+				if !ok || base == nil {
+					fmt.Printf("Error: variable '%s' is not public or does not exist\n", baseName)
+					break
+				}
+				if obj, ok := base.(map[string]interface{}); ok {
+					val := evalExpr(stmt.Value, env)
+					obj[fieldName] = val
+					// Optionally, update the base variable in the environment:
+					env.Set(baseName, obj)
+				} else {
+					fmt.Printf("Error: variable '%s' is not a struct\n", baseName)
+				}
+			} else if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
 				// Array mutation: xs[0] >> v
 				arr := evalExpr(idxExpr.Left, env)
 				idx := evalExpr(idxExpr.Index, env)
@@ -97,13 +115,13 @@ func Eval(stmts []ast.Statement, env *Environment) {
 				if ok && ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
 					arrSlice[int(idxInt)] = val
 				} else {
-					// Optionally: print error for out-of-bounds or wrong type
+					// Optionally: print error for out-of-bounds or wrong type.
 				}
-			} else {
-				// Normal variable assignment
+			} else if ident, ok := stmt.Left.(*ast.Identifier); ok {
+				// Normal variable assignment.
 				val := evalExpr(stmt.Value, env)
-				if !env.SetExisting(stmt.Name, val) {
-					env.Set(stmt.Name, val)
+				if !env.SetExisting(ident.Value, val) {
+					env.Set(ident.Value, val)
 				}
 			}
 		case *ast.WhileStatement:

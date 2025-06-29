@@ -22,5 +22,8 @@ fnc main () >> void {
 		last_name: "Smith"
 	}
 
-	log(u.last_name)
+	log(u.name)
+
+	u.name >> "Bob"
+	log(u.name)
 }
