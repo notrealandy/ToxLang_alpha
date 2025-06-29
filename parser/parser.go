@@ -155,17 +155,17 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 	fn.Name = p.curToken.Literal
 
 	// Support method syntax: User.greet
-    if p.peekToken.Type == token.DOT {
-        receiver := fn.Name
-        p.nextToken() // consume current IDENT
-        p.nextToken() // consume DOT
-        if p.curToken.Type != token.IDENT {
-            p.Errors = append(p.Errors, fmt.Sprintf("expected method name after '.' on line %d:%d", p.curToken.Line, p.curToken.Col))
-            return nil
-        }
-        fn.Name = receiver + "." + p.curToken.Literal
-        fn.ReceiverType = receiver // <-- add this field to FunctionStatement
-    }
+	if p.peekToken.Type == token.DOT {
+		receiver := fn.Name
+		p.nextToken() // consume current IDENT
+		p.nextToken() // consume DOT
+		if p.curToken.Type != token.IDENT {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected method name after '.' on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		fn.Name = receiver + "." + p.curToken.Literal
+		fn.ReceiverType = receiver
+	}
 
 	p.nextToken() // move to (
 	if p.curToken.Type != token.LPAREN {
@@ -212,7 +212,7 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 	}
 
 	p.nextToken() // move to return type (e.g. string, int, bool, void)
-	if p.curToken.Type != token.TYPE && p.curToken.Type != token.FNCVOID {
+	if p.curToken.Type != token.TYPE && p.curToken.Type != token.IDENT && p.curToken.Type != token.FNCVOID {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected return type after '>>' on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
 	}
@@ -537,62 +537,62 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 }
 
 func (p *Parser) parseBlock() []ast.Statement {
-    stmts := []ast.Statement{}
-    p.nextToken() // move past '{'
-    for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
-        var stmt ast.Statement
-        switch p.curToken.Type {
-        case token.LET:
-            stmt = p.parseLetStatement()
-        case token.FNC:
-            stmt = p.parseFunctionStatement()
-        case token.LOG:
-            stmt = p.parseLogFunctionStatement()
-        case token.RETURN:
-            stmt = p.parseReturnStatement()
-        case token.IF:
-            stmt = p.parseIfStatement()
-        case token.WHILE:
-            stmt = p.parseWhileStatement()
-        case token.FOR:
-            stmt = p.parseForStatement()
-        default:
-            // Instead of checking for IDENT with peekToken,
-            // if the current token is IDENT do:
-            if p.curToken.Type == token.IDENT {
-                expr := p.parsePrimary()
-                // If the next token is the assignment operator, upgrade.
-                if p.curToken.Type == token.ASSIGN_OP {
-                    stmt = p.parseAssignmentStatementFrom(expr)
-                } else {
-                    var line, col int
-                    if ident, ok := expr.(*ast.Identifier); ok {
-                        line, col = ident.Line, ident.Col
-                    } else {
-                        line, col = p.curToken.Line, p.curToken.Col
-                    }
-                    stmt = &ast.ExpressionStatement{
-                        Expr: expr,
-                        Line: line,
-                        Col:  col,
-                    }
-                }
-            } else {
-                // Otherwise, try to parse an expression normally.
-                expr := p.parseExpression()
-                stmt = &ast.ExpressionStatement{
-                    Expr: expr,
-                    Line: p.curToken.Line,
-                    Col:  p.curToken.Col,
-                }
-            }
-        }
-        if stmt != nil {
-            stmts = append(stmts, stmt)
-        }
-    }
-    p.nextToken() // skip '}'
-    return stmts
+	stmts := []ast.Statement{}
+	p.nextToken() // move past '{'
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		var stmt ast.Statement
+		switch p.curToken.Type {
+		case token.LET:
+			stmt = p.parseLetStatement()
+		case token.FNC:
+			stmt = p.parseFunctionStatement()
+		case token.LOG:
+			stmt = p.parseLogFunctionStatement()
+		case token.RETURN:
+			stmt = p.parseReturnStatement()
+		case token.IF:
+			stmt = p.parseIfStatement()
+		case token.WHILE:
+			stmt = p.parseWhileStatement()
+		case token.FOR:
+			stmt = p.parseForStatement()
+		default:
+			// Instead of checking for IDENT with peekToken,
+			// if the current token is IDENT do:
+			if p.curToken.Type == token.IDENT {
+				expr := p.parsePrimary()
+				// If the next token is the assignment operator, upgrade.
+				if p.curToken.Type == token.ASSIGN_OP {
+					stmt = p.parseAssignmentStatementFrom(expr)
+				} else {
+					var line, col int
+					if ident, ok := expr.(*ast.Identifier); ok {
+						line, col = ident.Line, ident.Col
+					} else {
+						line, col = p.curToken.Line, p.curToken.Col
+					}
+					stmt = &ast.ExpressionStatement{
+						Expr: expr,
+						Line: line,
+						Col:  col,
+					}
+				}
+			} else {
+				// Otherwise, try to parse an expression normally.
+				expr := p.parseExpression()
+				stmt = &ast.ExpressionStatement{
+					Expr: expr,
+					Line: p.curToken.Line,
+					Col:  p.curToken.Col,
+				}
+			}
+		}
+		if stmt != nil {
+			stmts = append(stmts, stmt)
+		}
+	}
+	p.nextToken() // skip '}'
+	return stmts
 }
 
 func (p *Parser) parseLogical() ast.Expression {
@@ -851,64 +851,64 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 }
 
 func (p *Parser) parseStructLiteral(expectedType string, line, col int) ast.Expression {
-    // p.curToken should be '{'
-    if p.curToken.Type != token.LBRACE {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected '{' to begin struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    p.nextToken() // skip '{'
-    fields := make(map[string]ast.Expression)
-    for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
-        if p.curToken.Type != token.IDENT {
-            p.Errors = append(p.Errors, fmt.Sprintf("expected field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
-            return nil
-        }
-        fieldName := p.curToken.Literal
-        p.nextToken()
-        if p.curToken.Type != token.COLON {
-            p.Errors = append(p.Errors, fmt.Sprintf("expected ':' after field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
-            return nil
-        }
-        p.nextToken()
-        fieldValue := p.parseExpression()
-        fields[fieldName] = fieldValue
-        if p.curToken.Type == token.COMMA { // optional comma
-            p.nextToken()
-        }
-    }
-    if p.curToken.Type != token.RBRACE {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
-        return nil
-    }
-    p.nextToken() // skip '}'
-    return &ast.StructLiteral{
-        StructName: expectedType,
-        Fields:     fields,
-        Line:       line,
-        Col:        col,
-    }
+	// p.curToken should be '{'
+	if p.curToken.Type != token.LBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '{' to begin struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken() // skip '{'
+	fields := make(map[string]ast.Expression)
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		if p.curToken.Type != token.IDENT {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		fieldName := p.curToken.Literal
+		p.nextToken()
+		if p.curToken.Type != token.COLON {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected ':' after field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		p.nextToken()
+		fieldValue := p.parseExpression()
+		fields[fieldName] = fieldValue
+		if p.curToken.Type == token.COMMA { // optional comma
+			p.nextToken()
+		}
+	}
+	if p.curToken.Type != token.RBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken() // skip '}'
+	return &ast.StructLiteral{
+		StructName: expectedType,
+		Fields:     fields,
+		Line:       line,
+		Col:        col,
+	}
 }
 func (p *Parser) parseAssignmentStatementFrom(left ast.Expression) *ast.AssignmentStatement {
-    line := left.(*ast.Identifier).Line
-    col := left.(*ast.Identifier).Col
+	line := left.(*ast.Identifier).Line
+	col := left.(*ast.Identifier).Col
 
-    // Expect the assignment operator (>>)
-    if p.curToken.Type != token.ASSIGN_OP {
-        p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after assignment target on line %d:%d", line, col))
-        return nil
-    }
-    p.nextToken() // skip '>>'
-    value := p.parseExpression()
+	// Expect the assignment operator (>>)
+	if p.curToken.Type != token.ASSIGN_OP {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after assignment target on line %d:%d", line, col))
+		return nil
+	}
+	p.nextToken() // skip '>>'
+	value := p.parseExpression()
 
-    var name string
-    if ident, ok := left.(*ast.Identifier); ok {
-        name = ident.Value
-    }
-    return &ast.AssignmentStatement{
-        Name:  name,
-        Left:  left,
-        Value: value,
-        Line:  line,
-        Col:   col,
-    }
+	var name string
+	if ident, ok := left.(*ast.Identifier); ok {
+		name = ident.Value
+	}
+	return &ast.AssignmentStatement{
+		Name:  name,
+		Left:  left,
+		Value: value,
+		Line:  line,
+		Col:   col,
+	}
 }

@@ -224,6 +224,13 @@ func checkWithReturnType(
 				errs = append(errs, fmt.Errorf("Error on line %d:%d: log expression uses an undeclared or non‑public variable", stmt.Line, stmt.Col))
 			}
 		case *ast.FunctionStatement:
+			// Check that the return type is valid (built-in or declared struct)
+			builtin := stmt.ReturnType == "int" || stmt.ReturnType == "string" || stmt.ReturnType == "bool" || stmt.ReturnType == "void"
+			if !builtin {
+				if _, ok := structDefs[stmt.ReturnType]; !ok {
+					errs = append(errs, fmt.Errorf("Unknown return type '%s' for function '%s' on line %d:%d", stmt.ReturnType, stmt.Name, stmt.Line, stmt.Col))
+				}
+			}
 			// Create a new scope for the function body.
 			funcVarTypes := make(map[string]string)
 			for k, v := range varTypes {

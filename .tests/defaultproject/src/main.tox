@@ -9,7 +9,7 @@ struct User >> {
 	last_name string
 }
 
-fnc main () >> void {
+fnc main () >> User {
 	// Runs the Tox Application
 	App.run()
 	App.Window()
@@ -29,6 +29,8 @@ fnc main () >> void {
 
 	log("-----")
 	log(u.greet())
+
+	return u
 }
 
 fnc User.greet () >> string {
