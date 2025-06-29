@@ -43,6 +43,7 @@ type FunctionStatement struct {
 	Body       []Statement
 	ReturnType string
 	Visibility string // "pub" (public) or "" (private by default)
+	ReceiverType string
 	Line       int
 	Col        int
 }

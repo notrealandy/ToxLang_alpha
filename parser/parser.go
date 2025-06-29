@@ -154,6 +154,19 @@ func (p *Parser) parseFunctionStatement() *ast.FunctionStatement {
 	}
 	fn.Name = p.curToken.Literal
 
+	// Support method syntax: User.greet
+    if p.peekToken.Type == token.DOT {
+        receiver := fn.Name
+        p.nextToken() // consume current IDENT
+        p.nextToken() // consume DOT
+        if p.curToken.Type != token.IDENT {
+            p.Errors = append(p.Errors, fmt.Sprintf("expected method name after '.' on line %d:%d", p.curToken.Line, p.curToken.Col))
+            return nil
+        }
+        fn.Name = receiver + "." + p.curToken.Literal
+        fn.ReceiverType = receiver // <-- add this field to FunctionStatement
+    }
+
 	p.nextToken() // move to (
 	if p.curToken.Type != token.LPAREN {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected '(' after function name on line %d:%d", p.curToken.Line, p.curToken.Col))

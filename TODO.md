@@ -18,8 +18,8 @@
 - [ ] Add support fot `switch` and `case`
 
 ## visibility support acorss files
-- [ ] default visibility of function/variable private
-- [ ] add public function/variable by typing `pub` before it `pub let x int >> 1` or `pub fnc helloTox () >> void {}`
+- [x] default visibility of function/variable private
+- [x] add public function/variable by typing `pub` before it `pub let x int >> 1` or `pub fnc helloTox () >> void {}`
 
 ## Loops
 - [x] Add support for `while` or `for` loops.
@@ -53,7 +53,7 @@
 ## Structs
 - [x] Structs
 - [x] Support for field assignments (updating a field in an already-created struct)
-- [ ] Methods on structs (if desired for your language)
+- [ ] Methods on structs
 - [ ] More detailed validation (e.g. checking that all fields are provided or no extra fields exist)
 
 ## Lambadas/maps

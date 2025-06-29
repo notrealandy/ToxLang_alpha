@@ -234,6 +234,37 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		return nil
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
+
+			// --- Method call support ---
+			if strings.Contains(ident.Value, ".") {
+				parts := strings.SplitN(ident.Value, ".", 2)
+				baseName, methodName := parts[0], parts[1]
+				baseVal, ok := env.Get(baseName)
+				// Only treat as a struct method if baseVal is a struct instance
+				if ok {
+					if obj, ok := baseVal.(map[string]interface{}); ok {
+						structType, _ := obj["_struct"].(string)
+						methodFullName := structType + "." + methodName
+						fnObj, ok := env.Get(methodFullName)
+						fnStmt, isFn := fnObj.(*ast.FunctionStatement)
+						if ok && isFn {
+							args := []interface{}{baseVal}
+							for _, argExpr := range v.Arguments {
+								args = append(args, evalExpr(argExpr, env))
+							}
+							localEnv := NewEnclosedEnvironment(getGlobalEnv(env))
+							localEnv.Set("this", baseVal)
+							for i, param := range fnStmt.Params {
+								if i < len(args) {
+									localEnv.Set(param, args[i])
+								}
+							}
+							return evalFunctionBody(fnStmt.Body, localEnv)
+						}
+					}
+				}
+			}
+
 			// Built-in: len(xs)
 			if ident.Value == "len" && len(v.Arguments) == 1 {
 				arg := evalExpr(v.Arguments[0], env)

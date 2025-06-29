@@ -26,4 +26,11 @@ fnc main () >> void {
 
 	u.name >> "Bob"
 	log(u.name)
+
+	log("-----")
+	log(u.greet())
+}
+
+fnc User.greet () >> int {
+	return 1
 }
