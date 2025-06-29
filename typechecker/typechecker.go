@@ -2,13 +2,14 @@ package typechecker
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/notrealandy/tox/ast"
 	"github.com/notrealandy/tox/token"
 )
 
 // Helper to infer the type of an expression as a string
-func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes map[string]string) string {
+func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes map[string]string, structDefs map[string]*ast.StructStatement) string {
 	switch v := expr.(type) {
 	case *ast.StringLiteral:
 		return "string"
@@ -19,6 +20,25 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 	case *ast.Identifier:
 		if t, ok := varTypes[v.Value]; ok {
 			return t
+		}
+		// Fallback: if the identifier is qualified (e.g. "u.name")
+		if strings.Contains(v.Value, ".") {
+			parts := strings.SplitN(v.Value, ".", 2)
+			baseName, fieldName := parts[0], parts[1]
+			if baseType, ok := varTypes[baseName]; ok {
+				// Look for a struct definition registered under the base type.
+				if def, ok := structDefs[baseType]; ok {
+					for _, fld := range def.Fields {
+						if fld.Name == fieldName {
+							return fld.Type
+						}
+					}
+				}
+			}
+			// Optionally, also try returning the unqualified field if it exists globally.
+			if t, ok := varTypes[fieldName]; ok {
+				return t
+			}
 		}
 		return ""
 	case *ast.BinaryExpression:
@@ -58,25 +78,28 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 		if len(v.Elements) == 0 {
 			return "unknown[]" // or error
 		}
-		elemType := inferExprType(v.Elements[0], funcTypes, varTypes)
+		elemType := inferExprType(v.Elements[0], funcTypes, varTypes, structDefs)
 		for _, el := range v.Elements[1:] {
-			if inferExprType(el, funcTypes, varTypes) != elemType {
+			if inferExprType(el, funcTypes, varTypes, structDefs) != elemType {
 				return "" // or error: mixed types
 			}
 		}
 		return elemType + "[]"
 	case *ast.IndexExpression:
-		leftType := inferExprType(v.Left, funcTypes, varTypes)
+		leftType := inferExprType(v.Left, funcTypes, varTypes, structDefs)
 		if len(leftType) > 2 && leftType[len(leftType)-2:] == "[]" {
 			return leftType[:len(leftType)-2]
 		}
 		return ""
 	case *ast.SliceExpression:
-		leftType := inferExprType(v.Left, funcTypes, varTypes)
+		leftType := inferExprType(v.Left, funcTypes, varTypes, structDefs)
 		if len(leftType) > 2 && leftType[len(leftType)-2:] == "[]" {
 			return leftType
 		}
 		return ""
+	case *ast.StructLiteral:
+		// For now, simply return the struct name as its type.
+		return v.StructName
 	default:
 		return ""
 	}
@@ -85,13 +108,24 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 func Check(stmts []ast.Statement) []error {
 	funcTypes := map[string]string{}
 	funcDefs := map[string]*ast.FunctionStatement{}
+	structDefs := map[string]*ast.StructStatement{}
+	globalVars := map[string]string{}
+
+	// First pass: register functions, structs, and global let statements.
 	for _, s := range stmts {
-		if fn, ok := s.(*ast.FunctionStatement); ok {
-			funcTypes[fn.Name] = fn.ReturnType
-			funcDefs[fn.Name] = fn
+		switch st := s.(type) {
+		case *ast.FunctionStatement:
+			funcTypes[st.Name] = st.ReturnType
+			funcDefs[st.Name] = st
+		case *ast.StructStatement:
+			// Register struct definition by its name.
+			structDefs[st.Name] = st
+		case *ast.LetStatement:
+			globalVars[st.Name] = st.Type
 		}
 	}
-	return checkWithReturnType(stmts, "", funcTypes, funcDefs, map[string]string{})
+	// Merge the globalVars into the initial varTypes.
+	return checkWithReturnType(stmts, "", funcTypes, funcDefs, globalVars, structDefs)
 }
 
 func checkWithReturnType(
@@ -100,6 +134,7 @@ func checkWithReturnType(
 	funcTypes map[string]string,
 	funcDefs map[string]*ast.FunctionStatement,
 	varTypes map[string]string,
+	structDefs map[string]*ast.StructStatement,
 ) []error {
 	var errs []error
 
@@ -114,7 +149,7 @@ func checkWithReturnType(
 	for _, s := range stmts {
 		switch stmt := s.(type) {
 		case *ast.LetStatement:
-			valType := inferExprType(stmt.Value, funcTypes, varTypes)
+			valType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
 			// If type inference fails, then an identifier may be non‑public or undeclared.
 			if valType == "" {
 				errs = append(errs, fmt.Errorf("Error on line %d:%d: initialization of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
@@ -124,13 +159,13 @@ func checkWithReturnType(
 				errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Type, stmt.Name))
 			}
 		case *ast.ExpressionStatement:
-			exprType := inferExprType(stmt.Expr, funcTypes, varTypes)
+			exprType := inferExprType(stmt.Expr, funcTypes, varTypes, structDefs)
 			if exprType == "" {
 				errs = append(errs, fmt.Errorf("Error on line %d:%d: expression uses an undeclared or non‑public variable", stmt.Line, stmt.Col))
 			}
 		// NEW: Check for log statements
 		case *ast.LogFunction:
-			exprType := inferExprType(stmt.Value, funcTypes, varTypes)
+			exprType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
 			if exprType == "" {
 				errs = append(errs, fmt.Errorf("Error on line %d:%d: log expression uses an undeclared or non‑public variable", stmt.Line, stmt.Col))
 			}
@@ -143,7 +178,7 @@ func checkWithReturnType(
 			for i, param := range stmt.Params {
 				funcVarTypes[param] = stmt.ParamTypes[i]
 			}
-			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes, funcDefs, funcVarTypes)...)
+			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes, funcDefs, funcVarTypes, structDefs)...)
 		case *ast.ReturnStatement:
 			if currentReturnType == "void" {
 				if stmt.Value != nil {
@@ -155,7 +190,7 @@ func checkWithReturnType(
 				if stmt.Value == nil {
 					errs = append(errs, fmt.Errorf("Must return a value from non-void function (line %d:%d)", stmt.Line, stmt.Col))
 				} else {
-					valType := inferExprType(stmt.Value, funcTypes, varTypes)
+					valType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
 					if valType != currentReturnType {
 						errs = append(errs, fmt.Errorf("Return type mismatch on line %d:%d: expected %s, got %s", stmt.Line, stmt.Col, currentReturnType, valType))
 					}
@@ -166,7 +201,7 @@ func checkWithReturnType(
 			if !ok {
 				errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", stmt.Name, stmt.Line, stmt.Col))
 			} else {
-				valType := inferExprType(stmt.Value, funcTypes, varTypes)
+				valType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
 				if valType == "" {
 					errs = append(errs, fmt.Errorf("Error on line %d:%d: assignment of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
 				} else if valType != expectedType {
@@ -174,30 +209,30 @@ func checkWithReturnType(
 				}
 			}
 		case *ast.WhileStatement:
-			condType := inferExprType(stmt.Condition, funcTypes, varTypes)
+			condType := inferExprType(stmt.Condition, funcTypes, varTypes, structDefs)
 			if condType != "bool" {
 				errs = append(errs, fmt.Errorf("While condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
 			}
 			// Typecheck the body
-			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, copyVarTypes(varTypes))...)
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, copyVarTypes(varTypes), structDefs)...)
 
 		case *ast.ForStatement:
 			// New scope for the for loop
 			forVarTypes := copyVarTypes(varTypes)
 			// Typecheck the init statement
 			if stmt.Init != nil {
-				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Init}, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Init}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
 			}
 			// Typecheck the condition
-			condType := inferExprType(stmt.Condition, funcTypes, forVarTypes)
+			condType := inferExprType(stmt.Condition, funcTypes, forVarTypes, structDefs)
 			if condType != "bool" {
 				errs = append(errs, fmt.Errorf("For condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
 			}
 			// Typecheck the body
-			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
 			// Typecheck the post statement
 			if stmt.Post != nil {
-				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Post}, currentReturnType, funcTypes, funcDefs, forVarTypes)...)
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Post}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
 			}
 		}
 	}
@@ -211,6 +246,7 @@ func checkCallExpr(
 	funcDefs map[string]*ast.FunctionStatement,
 	funcTypes map[string]string,
 	varTypes map[string]string,
+	structDefs map[string]*ast.StructStatement,
 	line, col int,
 ) []error {
 	var errs []error
@@ -224,7 +260,7 @@ func checkCallExpr(
 			errs = append(errs, fmt.Errorf("Built-in 'len' expects 1 argument, got %d on line %d:%d", len(call.Arguments), line, col))
 		}
 		// Optionally: check that the argument is an array type
-		argType := inferExprType(call.Arguments[0], funcTypes, varTypes)
+		argType := inferExprType(call.Arguments[0], funcTypes, varTypes, structDefs)
 		if len(argType) < 3 || argType[len(argType)-2:] != "[]" {
 			errs = append(errs, fmt.Errorf("Built-in 'len' expects an array argument, got %s on line %d:%d", argType, line, col))
 		}
@@ -236,7 +272,7 @@ func checkCallExpr(
 			errs = append(errs, fmt.Errorf("Built-in 'input' expects 0 or 1 argument, got %d on line %d:%d", len(call.Arguments), line, col))
 		}
 		if len(call.Arguments) == 1 {
-			argType := inferExprType(call.Arguments[0], funcTypes, varTypes)
+			argType := inferExprType(call.Arguments[0], funcTypes, varTypes, structDefs)
 			if argType != "string" {
 				errs = append(errs, fmt.Errorf("Built-in 'input' expects a string argument, got %s on line %d:%d", argType, line, col))
 			}
@@ -253,7 +289,7 @@ func checkCallExpr(
 		return errs
 	}
 	for i, arg := range call.Arguments {
-		argType := inferExprType(arg, funcTypes, varTypes)
+		argType := inferExprType(arg, funcTypes, varTypes, structDefs)
 		paramType := fn.ParamTypes[i]
 		if argType != paramType {
 			errs = append(errs, fmt.Errorf("Type error: argument %d to '%s' expects %s, got %s on line %d:%d", i+1, ident.Value, paramType, argType, line, col))

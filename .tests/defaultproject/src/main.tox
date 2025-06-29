@@ -3,10 +3,24 @@ package dev.notrealandy.defaultproject
 import dev.notrealandy.defaultproject.App
 import dev.notrealandy.defaultproject.Test
 
+struct User >> {
+	name string
+	age int
+	last_name string
+}
+
 fnc main () >> void {
 	// Runs the Tox Application
 	App.run()
 	App.Window()
 	log(Test.name)
 	// Test.run()
+
+	let u User >> {
+		name: "Alice",
+		age: 30,
+		last_name: "Smith"
+	}
+
+	log(u.last_name)
 }

@@ -161,6 +161,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.IMPORT
 	case "pub":
 		return token.PUB
+	case "struct":
+		return token.STRUCT
 	default:
 		return token.IDENT
 	}

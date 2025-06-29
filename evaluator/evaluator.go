@@ -137,12 +137,29 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.BoolLiteral:
 		return v.Value
 	case *ast.Identifier:
-		val, ok := env.Get(v.Value)
-		if !ok || val == nil {
-			// Return an error string rather than nil
-			return fmt.Sprintf("Error: variable '%s' is not public or does not exist", v.Value)
+		// First, try to look up the full identifier.
+		if val, ok := env.Get(v.Value); ok && val != nil {
+			return val
 		}
-		return val
+		// If full identifier lookup fails and the identifier is qualified, try field access.
+		if strings.Contains(v.Value, ".") {
+			parts := strings.SplitN(v.Value, ".", 2)
+			baseName := parts[0]
+			fieldName := parts[1]
+			base, ok := env.Get(baseName)
+			if !ok || base == nil {
+				return fmt.Sprintf("Error: variable '%s' is not public or does not exist", baseName)
+			}
+			if obj, ok := base.(map[string]interface{}); ok {
+				if fieldVal, exists := obj[fieldName]; exists {
+					return fieldVal
+				}
+				return fmt.Sprintf("Error: field '%s' not found in '%s'", fieldName, baseName)
+			}
+			return fmt.Sprintf("Error: variable '%s' is not a struct", baseName)
+		}
+		// Otherwise, return an error.
+		return fmt.Sprintf("Error: variable '%s' is not public or does not exist", v.Value)
 	case *ast.BinaryExpression:
 		left := evalExpr(v.Left, env)
 		right := evalExpr(v.Right, env)
@@ -296,6 +313,15 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			start = end
 		}
 		return arrSlice[start:end]
+	case *ast.StructLiteral:
+		// Evaluate each field and return a map representing the struct instance.
+		obj := make(map[string]interface{})
+		for key, exp := range v.Fields {
+			obj[key] = evalExpr(exp, env)
+		}
+		// Optionally store the struct type name (if needed later)
+		obj["_struct"] = v.StructName
+		return obj
 	}
 	return nil
 }

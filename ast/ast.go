@@ -4,13 +4,36 @@ import "github.com/notrealandy/tox/token"
 
 type Statement interface{}
 
+// StructStatement represents a struct declaration (e.g. struct User >> { name: string, age: int }).
+type StructStatement struct {
+	Name   string        // Name of the struct (e.g. "User")
+	Fields []StructField // List of field declarations
+	Line   int
+	Col    int
+}
+
+// StructField represents a single field in a struct declaration.
+type StructField struct {
+	Name string // Field name
+	Type string // Field type
+}
+
+// StructLiteral represents a struct literal (instance of a struct).
+// For example: User { name: "Andy", age: 22 }
+type StructLiteral struct {
+	StructName string                // Name of the struct type (e.g. "User")
+	Fields     map[string]Expression // Field values (by field name)
+	Line       int
+	Col        int
+}
+
 type LetStatement struct {
-	Name  string     // variable name
-	Type  string     // type as declared
-	Value Expression // the value assigned
-	Visibility string    // "pub" (public) or "" (private by default)
-	Line  int
-	Col   int
+	Name       string     // variable name
+	Type       string     // type as declared
+	Value      Expression // the value assigned
+	Visibility string     // "pub" (public) or "" (private by default)
+	Line       int
+	Col        int
 }
 
 type FunctionStatement struct {
@@ -71,11 +94,11 @@ type ForStatement struct {
 }
 
 type PackageStatement struct {
-    Name string
+	Name string
 }
 
 type ImportStatement struct {
-    Path string
+	Path string
 }
 
 type ArrayLiteral struct {
@@ -166,3 +189,4 @@ func (ue *UnaryExpression) expressionNode()  {}
 func (al *ArrayLiteral) expressionNode()     {}
 func (ie *IndexExpression) expressionNode()  {}
 func (se *SliceExpression) expressionNode()  {}
+func (sl *StructLiteral) expressionNode()    {}

@@ -77,6 +77,12 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parsePackageStatement()
 		} else if p.curToken.Type == token.IMPORT {
 			stmt = p.parseImportStatement()
+		} else if p.curToken.Type == token.STRUCT {
+			stmt := p.parseStructStatement()
+			if stmt != nil {
+				statements = append(statements, stmt)
+			}
+			continue
 		} else {
 			p.Errors = append(p.Errors, fmt.Sprintf("[PARSE PROGRAM] unexpected token '%s' on line %d:%d", p.curToken.Literal, p.curToken.Line, p.curToken.Col))
 			p.nextToken()
@@ -106,7 +112,7 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	name := p.curToken.Literal
 	p.nextToken()
 
-	if p.curToken.Type != token.TYPE {
+	if p.curToken.Type != token.TYPE && p.curToken.Type != token.IDENT {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected type on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
 	}
@@ -119,7 +125,14 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	}
 	p.nextToken()
 
-	value := p.parseExpression()
+	var value ast.Expression
+	// If the next token is '{' and the type is user–defined (e.g. struct),
+	// then parse a struct literal with the expected type.
+	if p.curToken.Type == token.LBRACE {
+		value = p.parseStructLiteral(typ, p.curToken.Line, p.curToken.Col)
+	} else {
+		value = p.parseExpression()
+	}
 
 	return &ast.LetStatement{
 		Name:  name,
@@ -290,8 +303,50 @@ func (p *Parser) parsePrimary() ast.Expression {
 		p.nextToken()
 		return lit
 	case token.IDENT, token.LEN, token.INPUT:
+		identName := p.curToken.Literal
+		identLine := p.curToken.Line
+		identCol := p.curToken.Col
 		var expr ast.Expression = &ast.Identifier{Value: p.curToken.Literal, Line: p.curToken.Line, Col: p.curToken.Col}
 		p.nextToken()
+
+		// If immediately a '{' follows, interpret as a struct literal.
+		if p.curToken.Type == token.LBRACE {
+			p.nextToken() // skip '{'
+			fields := make(map[string]ast.Expression)
+			for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+				// Expect field name
+				if p.curToken.Type != token.IDENT {
+					p.Errors = append(p.Errors, fmt.Sprintf("expected field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+					return nil
+				}
+				fieldName := p.curToken.Literal
+				p.nextToken()
+				// Expect ':'
+				if p.curToken.Type != token.COLON {
+					p.Errors = append(p.Errors, fmt.Sprintf("expected ':' after field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+					return nil
+				}
+				p.nextToken()
+				fieldValue := p.parseExpression()
+				fields[fieldName] = fieldValue
+				// Optional comma
+				if p.curToken.Type == token.COMMA {
+					p.nextToken()
+				}
+			}
+			if p.curToken.Type != token.RBRACE {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken() // skip '}'
+			return &ast.StructLiteral{
+				StructName: identName,
+				Fields:     fields,
+				Line:       identLine,
+				Col:        identCol,
+			}
+		}
+
 		// Handle dot notation: App.run or App.foo.bar
 		for p.curToken.Type == token.DOT {
 			p.nextToken()
@@ -708,4 +763,102 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	ipt := &ast.ImportStatement{Path: strings.Join(parts, ".")}
 
 	return ipt
+}
+
+func (p *Parser) parseStructStatement() *ast.StructStatement {
+	stmt := &ast.StructStatement{Line: p.curToken.Line, Col: p.curToken.Col}
+
+	// consume 'struct'
+	p.nextToken()
+
+	// Expect the struct name
+	if p.curToken.Type != token.IDENT {
+		p.Errors = append(p.Errors, "expected struct name")
+		return nil
+	}
+	stmt.Name = p.curToken.Literal
+	p.nextToken()
+
+	// Allow optional ASSIGN_OP (>>)
+	if p.curToken.Type == token.ASSIGN_OP {
+		p.nextToken()
+	}
+
+	// Expect '{'
+	if p.curToken.Type != token.LBRACE {
+		p.Errors = append(p.Errors, "expected '{' after struct name")
+		return nil
+	}
+	p.nextToken() // skip '{'
+
+	var fields []ast.StructField
+	// Parse fields until '}'
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		if p.curToken.Type != token.IDENT {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected field name on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		fieldName := p.curToken.Literal
+		p.nextToken()
+
+		// Expect a type (user-defined types come as IDENT or built-in as TYPE)
+		if p.curToken.Type != token.TYPE && p.curToken.Type != token.IDENT {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected type after ':' on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		fieldType := p.curToken.Literal
+		fields = append(fields, ast.StructField{Name: fieldName, Type: fieldType})
+		p.nextToken()
+
+		// Optional comma
+		if p.curToken.Type == token.COMMA {
+			p.nextToken()
+		}
+	}
+	stmt.Fields = fields
+	if p.curToken.Type != token.RBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of struct declaration on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken() // skip '}'
+	return stmt
+}
+
+func (p *Parser) parseStructLiteral(expectedType string, line, col int) ast.Expression {
+    // p.curToken should be '{'
+    if p.curToken.Type != token.LBRACE {
+        p.Errors = append(p.Errors, fmt.Sprintf("expected '{' to begin struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+        return nil
+    }
+    p.nextToken() // skip '{'
+    fields := make(map[string]ast.Expression)
+    for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+        if p.curToken.Type != token.IDENT {
+            p.Errors = append(p.Errors, fmt.Sprintf("expected field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+            return nil
+        }
+        fieldName := p.curToken.Literal
+        p.nextToken()
+        if p.curToken.Type != token.COLON {
+            p.Errors = append(p.Errors, fmt.Sprintf("expected ':' after field name in struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+            return nil
+        }
+        p.nextToken()
+        fieldValue := p.parseExpression()
+        fields[fieldName] = fieldValue
+        if p.curToken.Type == token.COMMA { // optional comma
+            p.nextToken()
+        }
+    }
+    if p.curToken.Type != token.RBRACE {
+        p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of struct literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+        return nil
+    }
+    p.nextToken() // skip '}'
+    return &ast.StructLiteral{
+        StructName: expectedType,
+        Fields:     fields,
+        Line:       line,
+        Col:        col,
+    }
 }
