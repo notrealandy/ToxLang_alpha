@@ -75,3 +75,6 @@
 
 ## Strings
 - [x] multiline strings
+
+## C Binds
+- [ ]
