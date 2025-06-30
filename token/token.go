@@ -33,6 +33,7 @@ const (
 	FNCVOID = "FNCVOID" // function return type void
 	PACKAGE = "PACKAGE" // package keyword
 	IMPORT = "IMPORT" // import keyword
+	CIMPORT = "CIMPORT" // cimport keyword
 	DOT = "DOT" // .
 	PLUS = "+"
 	MINUS = "-"

@@ -3,6 +3,8 @@ package dev.notrealandy.defaultproject
 import dev.notrealandy.defaultproject.App
 import dev.notrealandy.defaultproject.Test
 
+cimport "studio.h"
+
 struct User >> {
 	name string
 	age int

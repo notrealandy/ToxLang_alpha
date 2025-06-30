@@ -4,6 +4,10 @@ import "github.com/notrealandy/tox/token"
 
 type Statement interface{}
 
+type CImportStatement struct {
+	Header string
+}
+
 // StructStatement represents a struct declaration (e.g. struct User >> { name: string, age: int }).
 type StructStatement struct {
 	Name   string        // Name of the struct (e.g. "User")

@@ -77,6 +77,8 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parsePackageStatement()
 		} else if p.curToken.Type == token.IMPORT {
 			stmt = p.parseImportStatement()
+		} else if p.curToken.Type == token.CIMPORT {
+			stmt = p.parseCImportStatement()
 		} else if p.curToken.Type == token.BREAK {
 			stmt = p.parseBreakStatement()
 		} else if p.curToken.Type == token.CONTINUE {
@@ -1024,4 +1026,15 @@ func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
 	line, col := p.curToken.Line, p.curToken.Col
 	p.nextToken()
 	return &ast.ContinueStatement{Line: line, Col: col}
+}
+
+func (p *Parser) parseCImportStatement() *ast.CImportStatement {
+    p.nextToken()
+    if p.curToken.Type != token.STRING {
+        p.Errors = append(p.Errors, "expected string literal after cimport")
+        return nil
+    }
+    stmt := &ast.CImportStatement{Header: p.curToken.Literal}
+    p.nextToken()
+    return stmt
 }

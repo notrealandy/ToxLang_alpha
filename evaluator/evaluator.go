@@ -169,6 +169,9 @@ func Eval(stmts []ast.Statement, env *Environment) interface{} {
 					Eval([]ast.Statement{stmt.Post}, forEnv)
 				}
 			}
+		case *ast.CImportStatement:
+			// TODO: Actually load the C header and expose functions/types.
+			fmt.Printf("[CIMPORT] Would import C header: %s\n", stmt.Header)
 		}
 	}
 	return nil

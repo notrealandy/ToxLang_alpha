@@ -159,6 +159,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.PACKAGE
 	case "import":
 		return token.IMPORT
+	case "cimport":
+		return token.CIMPORT
 	case "pub":
 		return token.PUB
 	case "struct":
