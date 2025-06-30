@@ -275,6 +275,18 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
 
+			// --- C namespace call ---
+			if strings.HasPrefix(ident.Value, "c.") {
+				funcName := strings.TrimPrefix(ident.Value, "c.")
+				args := []interface{}{}
+				for _, argExpr := range v.Arguments {
+					args = append(args, evalExpr(argExpr, env))
+				}
+				fmt.Printf("[C CALL] Would call C function: %s(%v)\n", funcName, args)
+				// TODO: Actually call C function here using cgo or FFI
+				return nil
+			}
+
 			// --- Method call support ---
 			if strings.Contains(ident.Value, ".") {
 				parts := strings.SplitN(ident.Value, ".", 2)

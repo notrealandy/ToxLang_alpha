@@ -12,6 +12,9 @@ struct User >> {
 }
 
 fnc main () >> User {
+
+	c.printf("Hello, Tox & C!\n")
+
 	// Runs the Tox Application
 	App.run()
 	App.Window()
