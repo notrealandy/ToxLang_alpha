@@ -113,8 +113,17 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 		return elemType + "[]"
 	case *ast.IndexExpression:
 		leftType := inferExprType(v.Left, funcTypes, varTypes, structDefs)
+		// Array indexing
 		if len(leftType) > 2 && leftType[len(leftType)-2:] == "[]" {
 			return leftType[:len(leftType)-2]
+		}
+		// Map indexing: map[keyType]valueType
+		if strings.HasPrefix(leftType, "map[") {
+			// Extract value type
+			closeBracket := strings.Index(leftType, "]")
+			if closeBracket != -1 && closeBracket+1 < len(leftType) {
+				return leftType[closeBracket+1:]
+			}
 		}
 		return ""
 	case *ast.SliceExpression:
@@ -126,6 +135,9 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 	case *ast.StructLiteral:
 		// Return the struct name as its type.
 		return v.StructName
+		// --- In inferExprType ---
+	case *ast.MapLiteral:
+		return fmt.Sprintf("map[%s]%s", v.KeyType, v.ValueType)
 	default:
 		return ""
 	}
@@ -185,6 +197,26 @@ func checkWithReturnType(
 			if valType != stmt.Type {
 				errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Type, stmt.Name))
 			}
+
+			if mapLit, ok := stmt.Value.(*ast.MapLiteral); ok {
+				// Validate type string
+				expectedType := fmt.Sprintf("map[%s]%s", mapLit.KeyType, mapLit.ValueType)
+				if stmt.Type != expectedType {
+					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, expectedType, stmt.Type, stmt.Name))
+				}
+				// Validate all keys and values
+				for k, v := range mapLit.Pairs {
+					keyType := inferExprType(k, funcTypes, varTypes, structDefs)
+					valType := inferExprType(v, funcTypes, varTypes, structDefs)
+					if keyType != mapLit.KeyType {
+						errs = append(errs, fmt.Errorf("Map key type error on line %d:%d: expected %s, got %s", stmt.Line, stmt.Col, mapLit.KeyType, keyType))
+					}
+					if valType != mapLit.ValueType {
+						errs = append(errs, fmt.Errorf("Map value type error on line %d:%d: expected %s, got %s", stmt.Line, stmt.Col, mapLit.ValueType, valType))
+					}
+				}
+			}
+
 			// --- Struct literal field validation ---
 			if structLit, ok := stmt.Value.(*ast.StructLiteral); ok {
 				if def, ok := structDefs[structLit.StructName]; ok {
@@ -258,29 +290,40 @@ func checkWithReturnType(
 				}
 			}
 		case *ast.AssignmentStatement:
-			// For field assignments (qualified identifiers like "u.name")
+			// Field assignment: u.name >> ...
 			if ident, ok := stmt.Left.(*ast.Identifier); ok && strings.Contains(ident.Value, ".") {
-				parts := strings.SplitN(ident.Value, ".", 2)
-				baseName := parts[0]
-				fieldName := parts[1]
-				baseType, ok := varTypes[baseName]
-				if !ok {
-					errs = append(errs, fmt.Errorf("Assignment to undeclared variable '%s' on line %d:%d", baseName, stmt.Line, stmt.Col))
-				} else {
-					if def, ok := structDefs[baseType]; ok {
-						found := false
-						for _, fld := range def.Fields {
-							if fld.Name == fieldName {
-								found = true
-								break
-							}
-						}
-						if !found {
-							errs = append(errs, fmt.Errorf("Field '%s' not found in struct '%s' on line %d:%d", fieldName, baseType, stmt.Line, stmt.Col))
-						}
-					} else {
-						errs = append(errs, fmt.Errorf("Variable '%s' is not a struct on line %d:%d", baseName, stmt.Line, stmt.Col))
+				// ...field assignment logic...
+			} else if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
+				// Array or map mutation: xs[0] >> v or m["a"] >> v
+				collectionType := inferExprType(idxExpr.Left, funcTypes, varTypes, structDefs)
+				indexType := inferExprType(idxExpr.Index, funcTypes, varTypes, structDefs)
+				valType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
+				// Array mutation
+				if strings.HasSuffix(collectionType, "[]") {
+					elemType := collectionType[:len(collectionType)-2]
+					if indexType != "int" {
+						errs = append(errs, fmt.Errorf("Array index must be int, got %s on line %d:%d", indexType, stmt.Line, stmt.Col))
 					}
+					if valType != elemType {
+						errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s[] element", stmt.Line, stmt.Col, valType, elemType))
+					}
+				} else if strings.HasPrefix(collectionType, "map[") {
+					// Map mutation
+					closeBracket := strings.Index(collectionType, "]")
+					if closeBracket == -1 {
+						errs = append(errs, fmt.Errorf("Malformed map type '%s' on line %d:%d", collectionType, stmt.Line, stmt.Col))
+					} else {
+						keyType := collectionType[4:closeBracket]
+						valueType := collectionType[closeBracket+1:]
+						if indexType != keyType {
+							errs = append(errs, fmt.Errorf("Map key type error on line %d:%d: expected %s, got %s", stmt.Line, stmt.Col, keyType, indexType))
+						}
+						if valType != valueType {
+							errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (map value)", stmt.Line, stmt.Col, valType, valueType))
+						}
+					}
+				} else {
+					errs = append(errs, fmt.Errorf("Assignment target is not an array or map on line %d:%d", stmt.Line, stmt.Col))
 				}
 			} else {
 				// Normal assignment: variable must be declared.

@@ -112,6 +112,51 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	name := p.curToken.Literal
 	p.nextToken()
 
+	// Support :>> for map types
+	if p.curToken.Type == token.COLON && p.peekToken.Type == token.ASSIGN_OP {
+		p.nextToken() // skip ':'
+		p.nextToken() // skip '>>'
+
+		// Parse map type: map[string] >> int
+		if p.curToken.Type == token.TYPE && p.curToken.Literal == "map" {
+			p.nextToken()
+			if p.curToken.Type != token.LBRACKET {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected '[' after 'map' on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
+			keyType := p.curToken.Literal
+			p.nextToken()
+			if p.curToken.Type != token.RBRACKET {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected ']' after map key type on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
+			if p.curToken.Type != token.ASSIGN_OP {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected '>>' after map key type on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			p.nextToken()
+			valueType := p.curToken.Literal
+			p.nextToken()
+			typ := fmt.Sprintf("map[%s]%s", keyType, valueType)
+
+			// Parse map literal
+			if p.curToken.Type != token.LBRACE {
+				p.Errors = append(p.Errors, fmt.Sprintf("expected '{' for map literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+				return nil
+			}
+			value := p.parseMapLiteral(keyType, valueType)
+			return &ast.LetStatement{
+				Name:  name,
+				Type:  typ,
+				Value: value,
+				Line:  p.curToken.Line,
+				Col:   p.curToken.Col,
+			}
+		}
+	}
+
 	if p.curToken.Type != token.TYPE && p.curToken.Type != token.IDENT {
 		p.Errors = append(p.Errors, fmt.Sprintf("expected type on line %d:%d", p.curToken.Line, p.curToken.Col))
 		return nil
@@ -889,8 +934,20 @@ func (p *Parser) parseStructLiteral(expectedType string, line, col int) ast.Expr
 	}
 }
 func (p *Parser) parseAssignmentStatementFrom(left ast.Expression) *ast.AssignmentStatement {
-	line := left.(*ast.Identifier).Line
-	col := left.(*ast.Identifier).Col
+	var line, col int
+	switch l := left.(type) {
+	case *ast.Identifier:
+		line, col = l.Line, l.Col
+	case *ast.IndexExpression:
+		// Use the line/col of the base identifier if possible, else fallback to current token
+		if ident, ok := l.Left.(*ast.Identifier); ok {
+			line, col = ident.Line, ident.Col
+		} else {
+			line, col = p.curToken.Line, p.curToken.Col
+		}
+	default:
+		line, col = p.curToken.Line, p.curToken.Col
+	}
 
 	// Expect the assignment operator (>>)
 	if p.curToken.Type != token.ASSIGN_OP {
@@ -901,9 +958,15 @@ func (p *Parser) parseAssignmentStatementFrom(left ast.Expression) *ast.Assignme
 	value := p.parseExpression()
 
 	var name string
-	if ident, ok := left.(*ast.Identifier); ok {
-		name = ident.Value
+	switch l := left.(type) {
+	case *ast.Identifier:
+		name = l.Value
+	case *ast.IndexExpression:
+		if ident, ok := l.Left.(*ast.Identifier); ok {
+			name = ident.Value
+		}
 	}
+
 	return &ast.AssignmentStatement{
 		Name:  name,
 		Left:  left,
@@ -911,4 +974,34 @@ func (p *Parser) parseAssignmentStatementFrom(left ast.Expression) *ast.Assignme
 		Line:  line,
 		Col:   col,
 	}
+}
+
+func (p *Parser) parseMapLiteral(keyType, valueType string) *ast.MapLiteral {
+	lit := &ast.MapLiteral{
+		KeyType:   keyType,
+		ValueType: valueType,
+		Pairs:     map[ast.Expression]ast.Expression{},
+		Line:      p.curToken.Line,
+		Col:       p.curToken.Col,
+	}
+	p.nextToken() // skip '{'
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.EOF {
+		key := p.parseExpression()
+		if p.curToken.Type != token.COLON {
+			p.Errors = append(p.Errors, fmt.Sprintf("expected ':' after map key on line %d:%d", p.curToken.Line, p.curToken.Col))
+			return nil
+		}
+		p.nextToken()
+		value := p.parseExpression()
+		lit.Pairs[key] = value
+		if p.curToken.Type == token.COMMA {
+			p.nextToken()
+		}
+	}
+	if p.curToken.Type != token.RBRACE {
+		p.Errors = append(p.Errors, fmt.Sprintf("expected '}' at end of map literal on line %d:%d", p.curToken.Line, p.curToken.Col))
+		return nil
+	}
+	p.nextToken() // skip '}'
+	return lit
 }

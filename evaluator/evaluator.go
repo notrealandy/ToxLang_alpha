@@ -106,16 +106,23 @@ func Eval(stmts []ast.Statement, env *Environment) {
 					fmt.Printf("Error: variable '%s' is not a struct\n", baseName)
 				}
 			} else if idxExpr, ok := stmt.Left.(*ast.IndexExpression); ok {
-				// Array mutation: xs[0] >> v
-				arr := evalExpr(idxExpr.Left, env)
+				// Evaluate the collection and index
+				coll := evalExpr(idxExpr.Left, env)
 				idx := evalExpr(idxExpr.Index, env)
 				val := evalExpr(stmt.Value, env)
-				arrSlice, ok := arr.([]interface{})
-				idxInt, ok2 := idx.(int64)
-				if ok && ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
-					arrSlice[int(idxInt)] = val
-				} else {
-					// Optionally: print error for out-of-bounds or wrong type.
+
+				// Array mutation: xs[0] >> v
+				if arrSlice, ok := coll.([]interface{}); ok {
+					if idxInt, ok2 := idx.(int64); ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
+						arrSlice[int(idxInt)] = val
+					} else {
+						// Optionally: print error for out-of-bounds or wrong type.
+					}
+				}
+
+				// Map mutation: m["key"] >> v
+				if m, ok := coll.(map[interface{}]interface{}); ok {
+					m[idx] = val
 				}
 			} else if ident, ok := stmt.Left.(*ast.Identifier); ok {
 				// Normal variable assignment.
@@ -336,10 +343,16 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.IndexExpression:
 		arr := evalExpr(v.Left, env)
 		idx := evalExpr(v.Index, env)
-		arrSlice, ok := arr.([]interface{})
-		idxInt, ok2 := idx.(int64)
-		if ok && ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
-			return arrSlice[int(idxInt)]
+		// Array indexing
+		if arrSlice, ok := arr.([]interface{}); ok {
+			if idxInt, ok2 := idx.(int64); ok2 && int(idxInt) >= 0 && int(idxInt) < len(arrSlice) {
+				return arrSlice[int(idxInt)]
+			}
+			return nil // or error
+		}
+		// Map indexing
+		if m, ok := arr.(map[interface{}]interface{}); ok {
+			return m[idx]
 		}
 		return nil // or error
 	case *ast.SliceExpression:
@@ -380,6 +393,14 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 		// Optionally store the struct type name (if needed later)
 		obj["_struct"] = v.StructName
 		return obj
+	case *ast.MapLiteral:
+		m := make(map[interface{}]interface{})
+		for k, v := range v.Pairs {
+			key := evalExpr(k, env)
+			val := evalExpr(v, env)
+			m[key] = val
+		}
+		return m
 	}
 	return nil
 }

@@ -16,6 +16,15 @@ fnc main () >> User {
 	log(Test.name)
 	// Test.run()
 
+	let m :>> map[string] >> int {
+		"a": 1,
+		"b": 2
+	}
+
+	log(m["a"])
+	m["a"] >> 42
+	log(m["a"])
+
 	let u User >> {
 		name: "Alice",
 		age: 30,

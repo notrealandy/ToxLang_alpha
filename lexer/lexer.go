@@ -163,6 +163,8 @@ func lookupIdent(ident string) token.TokenType {
 		return token.PUB
 	case "struct":
 		return token.STRUCT
+	case "map":
+		return token.TYPE
 	default:
 		return token.IDENT
 	}

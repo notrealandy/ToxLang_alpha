@@ -37,15 +37,15 @@ type LetStatement struct {
 }
 
 type FunctionStatement struct {
-	Name       string // function name
-	Params     []string
-	ParamTypes []string
-	Body       []Statement
-	ReturnType string
-	Visibility string // "pub" (public) or "" (private by default)
+	Name         string // function name
+	Params       []string
+	ParamTypes   []string
+	Body         []Statement
+	ReturnType   string
+	Visibility   string // "pub" (public) or "" (private by default)
 	ReceiverType string
-	Line       int
-	Col        int
+	Line         int
+	Col          int
 }
 
 type LogFunction struct {
@@ -142,6 +142,14 @@ type UnaryExpression struct {
 	Col      int
 }
 
+type MapLiteral struct {
+	KeyType   string
+	ValueType string
+	Pairs     map[Expression]Expression
+	Line      int
+	Col       int
+}
+
 type NilLiteral struct{}
 
 type Expression interface {
@@ -191,3 +199,4 @@ func (al *ArrayLiteral) expressionNode()     {}
 func (ie *IndexExpression) expressionNode()  {}
 func (se *SliceExpression) expressionNode()  {}
 func (sl *StructLiteral) expressionNode()    {}
+func (ml *MapLiteral) expressionNode()       {}
