@@ -23,6 +23,7 @@
 
 ## Loops
 - [x] Add support for `while` or `for` loops.
+- [ ] Range based for loops
 
 ## Boolean Operators
 - [x] Support logical operators: `&&`, `||`, `!`.
@@ -60,3 +61,17 @@
 - [ ] Lambadas (anonymous functions)
 - [x] maps
 
+## Compound operators
+- [ ] +=
+- [ ] -=
+- [ ] ++
+- [ ] --
+
+## String Interpolation
+- [ ] "Hello, <%name%>"
+
+## Pattern Matching
+- [ ] 
+
+## Strings
+- [x] multiline strings

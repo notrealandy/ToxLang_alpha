@@ -220,6 +220,12 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Line = l.line
 		tok.Col = startCol
 		return tok
+	case '`':
+		tok.Type = token.STRING
+		tok.Literal = l.readBacktickString()
+		tok.Line = l.line
+		tok.Col = startCol
+		return tok
 	case '(':
 		tok = token.Token{Type: token.LPAREN, Literal: "(", Line: l.line, Col: startCol}
 	case ')':
@@ -287,4 +293,50 @@ func (l *Lexer) NextToken() token.Token {
 	}
 	l.readChar()
 	return tok
+}
+
+func (l *Lexer) readBacktickString() string {
+    position := l.position + 1 // skip opening `
+    for {
+        l.readChar()
+        if l.ch == '`' || l.ch == 0 {
+            break
+        }
+    }
+    str := l.input[position:l.position]
+    l.readChar() // skip closing `
+    return dedentMultilineString(str)
+}
+
+func dedentMultilineString(s string) string {
+    lines := strings.Split(s, "\n")
+    // Remove leading/trailing empty lines
+    for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+        lines = lines[1:]
+    }
+    for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+        lines = lines[:len(lines)-1]
+    }
+    if len(lines) == 0 {
+        return ""
+    }
+    // Find minimum indentation (ignore empty lines)
+    minIndent := -1
+    for _, line := range lines {
+        trimmed := strings.TrimLeft(line, " \t")
+        if trimmed == "" {
+            continue
+        }
+        indent := len(line) - len(trimmed)
+        if minIndent == -1 || indent < minIndent {
+            minIndent = indent
+        }
+    }
+    // Remove minIndent spaces/tabs from each line
+    for i, line := range lines {
+        if len(line) >= minIndent {
+            lines[i] = line[minIndent:]
+        }
+    }
+    return strings.Join(lines, "\n")
 }

@@ -41,6 +41,14 @@ fnc main () >> User {
 		log(i)
 	}
 
+	let testx string >> `
+		test1
+		test2
+		test3
+	`
+
+	log(testx)
+
 	log(u.name)
 
 	u.name >> "Bob"
