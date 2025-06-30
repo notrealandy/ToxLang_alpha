@@ -57,6 +57,9 @@ fnc main () >> User {
 	log("-----")
 	log(u.greet())
 
+	let nameA string >> "Tox"
+	log("Hello <%nameA%>")
+
 	return u
 }
 

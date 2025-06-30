@@ -68,7 +68,7 @@
 - [ ] --
 
 ## String Interpolation
-- [ ] "Hello, <%name%>"
+- [x] "Hello, <%name%>"
 
 ## Pattern Matching
 - [ ] 

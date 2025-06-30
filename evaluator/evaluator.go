@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/notrealandy/tox/ast"
@@ -176,7 +177,7 @@ func Eval(stmts []ast.Statement, env *Environment) interface{} {
 func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	switch v := expr.(type) {
 	case *ast.StringLiteral:
-		return v.Value
+		return interpolateString(v.Value, env)
 	case *ast.IntegerLiteral:
 		return v.Value
 	case *ast.BoolLiteral:
@@ -461,4 +462,41 @@ func printValue(val interface{}) {
 	default:
 		fmt.Println(v)
 	}
+}
+
+// Interpolates <%var%> or <%var.field%> in a string using the current environment
+func interpolateString(s string, env *Environment) string {
+	re := regexp.MustCompile(`<%([^%>]+)%>`)
+	return re.ReplaceAllStringFunc(s, func(match string) string {
+		inner := re.FindStringSubmatch(match)
+		if len(inner) == 2 {
+			expr := strings.TrimSpace(inner[1])
+			// Support dot notation for struct fields
+			if strings.Contains(expr, ".") {
+				parts := strings.Split(expr, ".")
+				val, ok := env.Get(parts[0])
+				if !ok {
+					return match
+				}
+				// Traverse fields
+				for _, field := range parts[1:] {
+					obj, ok := val.(map[string]interface{})
+					if !ok {
+						return match
+					}
+					val, ok = obj[field]
+					if !ok {
+						return match
+					}
+				}
+				return fmt.Sprint(val)
+			} else {
+				val, ok := env.Get(expr)
+				if ok {
+					return fmt.Sprint(val)
+				}
+			}
+		}
+		return match // leave as-is if not found
+	})
 }
