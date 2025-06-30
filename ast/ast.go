@@ -179,6 +179,11 @@ type BoolLiteral struct {
 	Value bool
 }
 
+type BreakStatement struct {
+	Line int
+	Col  int
+}
+
 func (lf *LogFunction) statementNode()         {}
 func (rs *ReturnStatement) statementNode()     {}
 func (es *ExpressionStatement) statementNode() {}
@@ -186,6 +191,7 @@ func (is *IfStatement) statementNode()         {}
 func (as *AssignmentStatement) statementNode() {}
 func (ws *WhileStatement) statementNode()      {}
 func (fs *ForStatement) statementNode()        {}
+func (bs *BreakStatement) statementNode()      {}
 
 func (id *Identifier) expressionNode()       {}
 func (il *IntegerLiteral) expressionNode()   {}

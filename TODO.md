@@ -58,5 +58,5 @@
 
 ## Lambadas/maps
 - [ ] Lambadas (anonymous functions)
-- [ ] maps
+- [x] maps
 

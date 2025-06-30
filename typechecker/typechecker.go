@@ -164,7 +164,7 @@ func Check(stmts []ast.Statement) []error {
 	}
 
 	// Merge global variables into varTypes and start typechecking the full AST.
-	return checkWithReturnType(stmts, "", funcTypes, funcDefs, globalVars, structDefs)
+	return checkWithReturnType(stmts, "", funcTypes, funcDefs, globalVars, structDefs, false)
 }
 
 // checkWithReturnType recursively typechecks statements with the current expected return type.
@@ -175,6 +175,7 @@ func checkWithReturnType(
 	funcDefs map[string]*ast.FunctionStatement,
 	varTypes map[string]string,
 	structDefs map[string]*ast.StructStatement,
+	inLoop bool,
 ) []error {
 	var errs []error
 
@@ -271,7 +272,7 @@ func checkWithReturnType(
 			for i, param := range stmt.Params {
 				funcVarTypes[param] = stmt.ParamTypes[i]
 			}
-			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes, funcDefs, funcVarTypes, structDefs)...)
+			errs = append(errs, checkWithReturnType(stmt.Body, stmt.ReturnType, funcTypes, funcDefs, funcVarTypes, structDefs, false)...)
 		case *ast.ReturnStatement:
 			if currentReturnType == "void" {
 				if stmt.Value != nil {
@@ -339,24 +340,28 @@ func checkWithReturnType(
 					}
 				}
 			}
+		case *ast.BreakStatement:
+			if !inLoop {
+				errs = append(errs, fmt.Errorf("Break statement not inside a loop on line %d:%d", stmt.Line, stmt.Col))
+			}
 		case *ast.WhileStatement:
 			condType := inferExprType(stmt.Condition, funcTypes, varTypes, structDefs)
 			if condType != "bool" {
 				errs = append(errs, fmt.Errorf("While condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
 			}
-			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, copyVarTypes(varTypes), structDefs)...)
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, copyVarTypes(varTypes), structDefs, true)...) // inLoop = true
 		case *ast.ForStatement:
 			forVarTypes := copyVarTypes(varTypes)
 			if stmt.Init != nil {
-				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Init}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Init}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs, false)...)
 			}
 			condType := inferExprType(stmt.Condition, funcTypes, forVarTypes, structDefs)
 			if condType != "bool" {
 				errs = append(errs, fmt.Errorf("For condition must be boolean, got %s on line %d:%d", condType, stmt.Line, stmt.Col))
 			}
-			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
+			errs = append(errs, checkWithReturnType(stmt.Body, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs, true)...) // inLoop = true
 			if stmt.Post != nil {
-				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Post}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs)...)
+				errs = append(errs, checkWithReturnType([]ast.Statement{stmt.Post}, currentReturnType, funcTypes, funcDefs, forVarTypes, structDefs, false)...)
 			}
 		}
 	}

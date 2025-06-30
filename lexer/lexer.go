@@ -165,6 +165,10 @@ func lookupIdent(ident string) token.TokenType {
 		return token.STRUCT
 	case "map":
 		return token.TYPE
+	case "break":
+		return token.BREAK
+	case "continue":
+		return token.CONTINUE
 	default:
 		return token.IDENT
 	}

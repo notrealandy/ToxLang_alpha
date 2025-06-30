@@ -4,6 +4,8 @@ type TokenType string
 
 const (
 	PUB = "PUB" // public keyword
+	BREAK = "BREAK" // break keyword
+	CONTINUE = "CONTINUE" // continue keyword
 	STRUCT = "STRUCT" // struct keyword
 	LET = "LET" // reserved keyword
 	FNC = "FNC" // function keyword

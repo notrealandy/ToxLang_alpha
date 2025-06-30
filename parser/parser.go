@@ -77,6 +77,8 @@ func (p *Parser) ParseProgram() []ast.Statement {
 			stmt = p.parsePackageStatement()
 		} else if p.curToken.Type == token.IMPORT {
 			stmt = p.parseImportStatement()
+		} else if p.curToken.Type == token.BREAK {
+			stmt = p.parseBreakStatement()
 		} else if p.curToken.Type == token.STRUCT {
 			stmt := p.parseStructStatement()
 			if stmt != nil {
@@ -601,6 +603,8 @@ func (p *Parser) parseBlock() []ast.Statement {
 			stmt = p.parseWhileStatement()
 		case token.FOR:
 			stmt = p.parseForStatement()
+		case token.BREAK:
+			stmt = p.parseBreakStatement()
 		default:
 			// Instead of checking for IDENT with peekToken,
 			// if the current token is IDENT do:
@@ -1004,4 +1008,10 @@ func (p *Parser) parseMapLiteral(keyType, valueType string) *ast.MapLiteral {
 	}
 	p.nextToken() // skip '}'
 	return lit
+}
+
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	line, col := p.curToken.Line, p.curToken.Col
+	p.nextToken()
+	return &ast.BreakStatement{Line: line, Col: col}
 }

@@ -16,6 +16,8 @@ type Environment struct {
 	parent *Environment
 }
 
+type breakSignal struct{}
+
 func NewEnvironment() *Environment {
 	return &Environment{store: make(map[string]interface{}), parent: nil}
 }
@@ -55,7 +57,7 @@ func getGlobalEnv(env *Environment) *Environment {
 }
 
 // Eval evaluates a program (list of statements)
-func Eval(stmts []ast.Statement, env *Environment) {
+func Eval(stmts []ast.Statement, env *Environment) interface{} {
 	for _, s := range stmts {
 		switch stmt := s.(type) {
 		case *ast.LetStatement:
@@ -131,26 +133,32 @@ func Eval(stmts []ast.Statement, env *Environment) {
 					env.Set(ident.Value, val)
 				}
 			}
+		case *ast.BreakStatement:
+			return breakSignal{}
 		case *ast.WhileStatement:
 			for isTruthy(evalExpr(stmt.Condition, env)) {
-				Eval(stmt.Body, env)
+				res := Eval(stmt.Body, env)
+				if _, ok := res.(breakSignal); ok {
+					break
+				}
 			}
 		case *ast.ForStatement:
-			// New scope for the for loop
 			forEnv := NewEnclosedEnvironment(env)
-			// Run init
 			if stmt.Init != nil {
 				Eval([]ast.Statement{stmt.Init}, forEnv)
 			}
-			// Loop
 			for isTruthy(evalExpr(stmt.Condition, forEnv)) {
-				Eval(stmt.Body, forEnv)
+				res := Eval(stmt.Body, forEnv)
+				if _, ok := res.(breakSignal); ok {
+					break
+				}
 				if stmt.Post != nil {
 					Eval([]ast.Statement{stmt.Post}, forEnv)
 				}
 			}
 		}
 	}
+	return nil
 }
 
 func evalExpr(expr ast.Expression, env *Environment) interface{} {
