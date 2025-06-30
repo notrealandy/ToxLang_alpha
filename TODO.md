@@ -43,8 +43,8 @@
 - [x] Allow comments in source code (e.g., lines starting with `//`).
 
 ## Break and Continue
-- [ ] break
-- [ ] continue
+- [x] break
+- [x] continue
 
 ## Packages and imports
 - [x] Packages

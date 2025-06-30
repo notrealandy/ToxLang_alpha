@@ -31,6 +31,16 @@ fnc main () >> User {
 		last_name: "Smith"
 	}
 
+	for let i int >> 0; i < 5; i >> i + 1 {
+		if i == 2 {
+			continue
+		}
+		if i == 4 {
+			break
+		}
+		log(i)
+	}
+
 	log(u.name)
 
 	u.name >> "Bob"

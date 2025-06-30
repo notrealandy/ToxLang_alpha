@@ -344,6 +344,10 @@ func checkWithReturnType(
 			if !inLoop {
 				errs = append(errs, fmt.Errorf("Break statement not inside a loop on line %d:%d", stmt.Line, stmt.Col))
 			}
+		case *ast.ContinueStatement:
+			if !inLoop {
+				errs = append(errs, fmt.Errorf("Continue statement not inside a loop on line %d:%d", stmt.Line, stmt.Col))
+			}
 		case *ast.WhileStatement:
 			condType := inferExprType(stmt.Condition, funcTypes, varTypes, structDefs)
 			if condType != "bool" {

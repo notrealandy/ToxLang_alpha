@@ -17,6 +17,7 @@ type Environment struct {
 }
 
 type breakSignal struct{}
+type continueSignal struct{}
 
 func NewEnvironment() *Environment {
 	return &Environment{store: make(map[string]interface{}), parent: nil}
@@ -135,11 +136,16 @@ func Eval(stmts []ast.Statement, env *Environment) interface{} {
 			}
 		case *ast.BreakStatement:
 			return breakSignal{}
+		case *ast.ContinueStatement:
+			return continueSignal{}
 		case *ast.WhileStatement:
 			for isTruthy(evalExpr(stmt.Condition, env)) {
 				res := Eval(stmt.Body, env)
 				if _, ok := res.(breakSignal); ok {
 					break
+				}
+				if _, ok := res.(continueSignal); ok {
+					continue
 				}
 			}
 		case *ast.ForStatement:
@@ -151,6 +157,12 @@ func Eval(stmts []ast.Statement, env *Environment) interface{} {
 				res := Eval(stmt.Body, forEnv)
 				if _, ok := res.(breakSignal); ok {
 					break
+				}
+				if _, ok := res.(continueSignal); ok {
+					if stmt.Post != nil {
+						Eval([]ast.Statement{stmt.Post}, forEnv)
+					}
+					continue
 				}
 				if stmt.Post != nil {
 					Eval([]ast.Statement{stmt.Post}, forEnv)
