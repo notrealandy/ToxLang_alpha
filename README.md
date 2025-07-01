@@ -1,3 +1,5 @@
+# ⚠️ CURRENTLY BOOTSTRAPPING TOX IN ITSELF
+
 # ToxLang
 
 A toy programming language with basic features.
