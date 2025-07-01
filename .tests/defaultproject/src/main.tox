@@ -1,15 +1,8 @@
 package dev.notrealandy.defaultproject
 
-import dev.notrealandy.defaultproject.App
-import dev.notrealandy.defaultproject.Test
-
 fnc main() >> void {
-	let u User >> {
-		name: "Alice",
-		age: 30
-	}
 
-	log(u)
+	let va string >> "Hello Tox!"
 
-	Test.run()
+	log(len(va))
 }

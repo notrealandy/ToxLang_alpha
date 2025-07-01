@@ -317,10 +317,14 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			// Built-in: len(xs)
 			if ident.Value == "len" && len(v.Arguments) == 1 {
 				arg := evalExpr(v.Arguments[0], env)
-				if arr, ok := arg.([]interface{}); ok {
-					return int64(len(arr))
+				switch val := arg.(type) {
+				case string:
+					return int64(len(val))
+				case []interface{}:
+					return int64(len(val))
+				default:
+					return int64(0) // or error
 				}
-				return int64(0) // or error
 			}
 			// Built-in: input()
 			if ident.Value == "input" && (len(v.Arguments) == 0 || len(v.Arguments) == 1) {
