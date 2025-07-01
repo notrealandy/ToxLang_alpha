@@ -4,14 +4,12 @@ import dev.notrealandy.defaultproject.App
 import dev.notrealandy.defaultproject.Test
 
 fnc main() >> void {
-	let buf int[] >> go.bytes.make(10)
-	buf[0] >> 42
-	go.println(buf)
-	let n int >> go.bytes.copy(buf, [1,2,3])
-	go.println(n) // prints 3
+	let u User >> {
+		name: "Alice",
+		age: 30
+	}
 
-	let l int >> len(buf)
-	let c int >> go.bytes.cap(buf)
-	go.println(l)
-	go.println(c)
+	log(u)
+
+	Test.run()
 }

@@ -2,6 +2,11 @@ package dev.notrealandy.defaultproject.App
 
 import dev.notrealandy.defaultproject.Test
 
+struct User >> {
+	name string
+	age int
+}
+
 fnc App () >> void {
 	log("Welcome to the Tox Application!")
 }
