@@ -79,10 +79,6 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 					}
 				}
 
-				if strings.HasPrefix(ident.Value, "c.") {
-					return "void" // whatever you want as the default
-				}
-
 				// Normal function
 				if ret, ok := funcTypes[ident.Value]; ok {
 					return ret
@@ -390,11 +386,6 @@ func checkCallExpr(
 	var errs []error
 	ident, ok := call.Function.(*ast.Identifier)
 	if !ok {
-		return errs
-	}
-
-	if strings.HasPrefix(ident.Value, "c.") {
-		// Accept any c.* call as valid for now
 		return errs
 	}
 
