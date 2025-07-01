@@ -275,6 +275,15 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 	case *ast.CallExpression:
 		if ident, ok := v.Function.(*ast.Identifier); ok {
 
+			// Built-in functions
+			if fn, ok := Builtins[ident.Value]; ok {
+				args := []interface{}{}
+				for _, argExpr := range v.Arguments {
+					args = append(args, evalExpr(argExpr, env))
+				}
+				return fn(args)
+			}
+
 			// --- Method call support ---
 			if strings.Contains(ident.Value, ".") {
 				parts := strings.SplitN(ident.Value, ".", 2)
@@ -374,7 +383,13 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 			}
 			return nil // or error
 		}
-		// Map indexing
+		// Map indexing (Go built-in returns map[string]interface{})
+		if m, ok := arr.(map[string]interface{}); ok {
+			if key, ok := idx.(string); ok {
+				return m[key]
+			}
+		}
+		// Map indexing (user map)
 		if m, ok := arr.(map[interface{}]interface{}); ok {
 			return m[idx]
 		}

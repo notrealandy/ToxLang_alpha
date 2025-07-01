@@ -133,7 +133,7 @@ func lookupIdent(ident string) token.TokenType {
 		return token.FNC
 	case "log":
 		return token.LOG
-	case "string", "int", "bool", "void", "int[]", "string[]", "bool[]":
+	case "string", "int", "bool", "any", "void", "int[]", "string[]", "bool[]", "any[]":
 		return token.TYPE
 	case "true", "false":
 		return token.BOOL

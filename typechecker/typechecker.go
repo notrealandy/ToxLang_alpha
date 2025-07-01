@@ -8,6 +8,32 @@ import (
 	"github.com/notrealandy/tox/token"
 )
 
+var GoBuiltins = map[string]string{
+	"go.println":         "void",
+	"go.printf":          "void",
+	"go.time.now":        "string",
+	"go.time.sleep":      "void",
+	"go.file.open":       "int",
+	"go.file.close":      "void",
+	"go.file.read":       "string",
+	"go.file.write":      "bool",
+	"go.file.create":     "int",
+	"go.file.remove":     "bool",
+	"go.dir.create":      "bool",
+	"go.dir.remove":      "bool",
+	"go.dir.removeAll":   "bool",
+	"go.path.exists":     "bool",
+	"go.file.stat":       "map[string]any",
+	"go.file.readline":   "string",
+	"go.strings.split":   "string[]",
+	"go.strings.trim":    "string",
+	"go.strings.toLower": "string",
+	"go.strings.toUpper": "string",
+	"go.bytes.make":      "int[]", // or "byte[]" if you add a byte type
+	"go.bytes.copy":      "int",   // returns number of bytes copied
+	"go.bytes.cap":       "int",
+}
+
 // inferExprType returns the type (as a string) of an expression.
 func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes map[string]string, structDefs map[string]*ast.StructStatement) string {
 	switch v := expr.(type) {
@@ -66,6 +92,11 @@ func inferExprType(expr ast.Expression, funcTypes map[string]string, varTypes ma
 	case *ast.CallExpression:
 		if v.Function != nil {
 			if ident, ok := v.Function.(*ast.Identifier); ok {
+
+				if ret, ok := GoBuiltins[ident.Value]; ok {
+					return ret
+				}
+
 				// --- Method call support ---
 				if strings.Contains(ident.Value, ".") {
 					parts := strings.SplitN(ident.Value, ".", 2)
@@ -196,7 +227,17 @@ func checkWithReturnType(
 				errs = append(errs, fmt.Errorf("Error on line %d:%d: initialization of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
 			}
 			varTypes[stmt.Name] = stmt.Type
-			if valType != stmt.Type {
+			if stmt.Type == "any" {
+				// Only allow non-array types
+				if len(valType) > 2 && valType[len(valType)-2:] == "[]" {
+					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign array type %s to any (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Name))
+				}
+			} else if stmt.Type == "any[]" {
+				// Only allow array types
+				if len(valType) <= 2 || valType[len(valType)-2:] != "[]" {
+					errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign non-array type %s to any[] (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Name))
+				}
+			} else if valType != stmt.Type {
 				errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Type, stmt.Name))
 			}
 
@@ -336,6 +377,16 @@ func checkWithReturnType(
 					valType := inferExprType(stmt.Value, funcTypes, varTypes, structDefs)
 					if valType == "" {
 						errs = append(errs, fmt.Errorf("Error on line %d:%d: assignment of variable '%s' uses an undeclared or non‑public variable", stmt.Line, stmt.Col, stmt.Name))
+					} else if expectedType == "any" {
+						// Only allow non-array types
+						if len(valType) > 2 && valType[len(valType)-2:] == "[]" {
+							errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign array type %s to any (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Name))
+						}
+					} else if expectedType == "any[]" {
+						// Only allow array types
+						if len(valType) <= 2 || valType[len(valType)-2:] != "[]" {
+							errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign non-array type %s to any[] (variable '%s')", stmt.Line, stmt.Col, valType, stmt.Name))
+						}
 					} else if valType != expectedType {
 						errs = append(errs, fmt.Errorf("Type error on line %d:%d: cannot assign %s to %s (variable '%s')", stmt.Line, stmt.Col, valType, expectedType, stmt.Name))
 					}
@@ -386,6 +437,10 @@ func checkCallExpr(
 	var errs []error
 	ident, ok := call.Function.(*ast.Identifier)
 	if !ok {
+		return errs
+	}
+
+	if _, ok := GoBuiltins[ident.Value]; ok {
 		return errs
 	}
 

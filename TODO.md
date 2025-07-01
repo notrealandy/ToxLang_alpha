@@ -80,37 +80,37 @@
 ## Memory management
 Go manages memory automatically (garbage collected), but if you want manual control in Tox, you could expose:
 
-- [ ] make([]byte, size) for buffer allocation
+- [x] make([]byte, size) for buffer allocation
 
-- [ ] copy for copying slices
+- [x] copy for copying slices
 
-- [ ] len and cap for slice introspection
+- [x] len and cap for slice introspection
 
 Possibly you don’t need malloc/free bindings because Go handles that internally.
 
 ## File I/O
 Go’s os and io packages provide all you need:
 
-- [ ] os.Open, os.Create, os.Remove (file operations)
+- [x] os.Open, os.Create, os.Remove (file operations)
 
-- [ ] Read, Write on files (implement as Go functions exposed to Tox)
+- [x] Read, Write on files (implement as Go functions exposed to Tox)
 
-- [ ] os.Stat for file metadata
+- [x] os.Stat for file metadata
 
-- [ ] bufio for buffered reading/writing
+- [x] bufio for buffered reading/writing
 
 ## Console I/O
 
-- [ ] fmt.Println, fmt.Printf for output (wrap as Tox built-ins)
+- [x] fmt.Println, fmt.Printf for output (wrap as Tox built-ins)
 
-- [ ] bufio.Reader(os.Stdin) for input
+- [x] bufio.Reader(os.Stdin) for input
 
 ## String and byte manipulation
 
-- [ ] strings package functions (split, trim, etc.)
+- [x] strings package functions (split, trim, etc.)
 
-- [ ] bytes package (buffer manipulation)
+- [x] bytes package (buffer manipulation)
 
 ## Time & Date
 
-- [ ] time.Now(), time.Sleep()
+- [x] time.Now(), time.Sleep()
