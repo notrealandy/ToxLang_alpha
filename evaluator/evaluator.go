@@ -323,7 +323,7 @@ func evalExpr(expr ast.Expression, env *Environment) interface{} {
 				case []interface{}:
 					return int64(len(val))
 				default:
-					return int64(0) // or error
+					return int64(0)
 				}
 			}
 			// Built-in: input()
